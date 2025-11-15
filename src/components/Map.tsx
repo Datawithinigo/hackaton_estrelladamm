@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MapPin, Star, Eye, EyeOff, Navigation, MessageCircle, Beer, Filter } from 'lucide-react';
 import { User } from '../lib/supabase';
+import { useFilters } from '../contexts/FilterContext';
+import FilterStatus from './FilterStatus';
 
 interface MapProps {
   users: (User & { id: string })[];
@@ -9,16 +11,31 @@ interface MapProps {
   onSendBeer?: (userId: string) => void;
 }
 
+/**
+ * Map component with global filter integration
+ * 
+ * This component uses the global filter context to:
+ * - Apply age and gender filters to the displayed users
+ * - Sync filter changes with all other sections of the app
+ * - Persist filter settings across navigation
+ * 
+ * When filters are changed here, they affect:
+ * - UsersList in the "Estrellas" section
+ * - Any other components that use the applyFilters function
+ */
+
 export default function Map({ users, currentUser, onMessageUser, onSendBeer }: MapProps) {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [ageRange, setAgeRange] = useState<[number, number]>([18, 99]);
-  const [genderFilter, setGenderFilter] = useState<'todos' | 'hombre' | 'mujer'>('todos');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Use global filters
+  const { filters, setAgeRange, setGenderFilter, clearFilters } = useFilters();
+  const { ageRange, genderFilter } = filters;
 
   const filteredUsers = users.filter(u => {
     if (!u.visible_on_map || u.id === currentUser?.id) return false;
-    if (u.age < ageRange[0] || u.age > ageRange[1]) return false;
+    if (u.age !== undefined && (u.age < ageRange[0] || u.age > ageRange[1])) return false;
     if (genderFilter !== 'todos' && u.gender !== genderFilter) return false;
     return true;
   });
@@ -30,7 +47,7 @@ export default function Map({ users, currentUser, onMessageUser, onSendBeer }: M
     lng: 2.1734 + index * 0.002
   }));
 
-  const getLevelColor = (level: string) => {
+  const getLevelColor = (level?: string) => {
     switch (level) {
       case 'Oro': return 'text-[#D4AF37]';
       case 'Plata': return 'text-[#C0C0C0]';
@@ -46,7 +63,7 @@ export default function Map({ users, currentUser, onMessageUser, onSendBeer }: M
             ¿Quién brilla por tu zona?
           </h2>
           <p className="text-xl text-[#666666] mb-6">
-            Otros cazadores de estrellas en tu área (solo si quieren ser vistos)
+            Otras estrellas en tu área (solo si quieren ser vistas)
           </p>
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 mb-6">
@@ -86,15 +103,16 @@ export default function Map({ users, currentUser, onMessageUser, onSendBeer }: M
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-bold text-[#333333] mb-3">Edad</label>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-sm text-[#666666]">De</span>
                       <input
                         type="number"
                         value={ageRange[0]}
                         onChange={(e) => setAgeRange([Number(e.target.value), ageRange[1]])}
                         min="18"
                         max="99"
-                        className="w-20 px-3 py-2 border-2 border-[#F5F5F5] rounded-lg focus:border-[#C8102E] outline-none"
+                        className="w-20 px-3 py-2 border-2 border-[#F5F5F5] rounded-lg focus:border-[#C8102E] outline-none text-center"
                       />
                       <span className="text-[#666666]">a</span>
                       <input
@@ -103,18 +121,55 @@ export default function Map({ users, currentUser, onMessageUser, onSendBeer }: M
                         onChange={(e) => setAgeRange([ageRange[0], Number(e.target.value)])}
                         min="18"
                         max="99"
-                        className="w-20 px-3 py-2 border-2 border-[#F5F5F5] rounded-lg focus:border-[#C8102E] outline-none"
+                        className="w-20 px-3 py-2 border-2 border-[#F5F5F5] rounded-lg focus:border-[#C8102E] outline-none text-center"
                       />
                       <span className="text-[#666666]">años</span>
                     </div>
-                    <input
-                      type="range"
-                      min="18"
-                      max="99"
-                      value={ageRange[0]}
-                      onChange={(e) => setAgeRange([Number(e.target.value), ageRange[1]])}
-                      className="w-full"
-                    />
+                    
+                    {/* Dual Range Slider */}
+                    <div className="relative px-2">
+                      <div className="relative h-2 bg-gray-200 rounded-lg">
+                        <div 
+                          className="absolute h-2 bg-gradient-to-r from-[#C8102E] to-[#C8102E] rounded-lg"
+                          style={{
+                            left: `${((ageRange[0] - 18) / (99 - 18)) * 100}%`,
+                            width: `${((ageRange[1] - ageRange[0]) / (99 - 18)) * 100}%`
+                          }}
+                        ></div>
+                      </div>
+                      
+                      {/* Min range input */}
+                      <input
+                        type="range"
+                        min="18"
+                        max="99"
+                        value={ageRange[0]}
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          if (value <= ageRange[1]) {
+                            setAgeRange([value, ageRange[1]]);
+                          }
+                        }}
+                        className="absolute top-0 w-full h-2 bg-transparent appearance-none cursor-pointer range-slider-thumb"
+                        style={{ zIndex: 1 }}
+                      />
+                      
+                      {/* Max range input */}
+                      <input
+                        type="range"
+                        min="18"
+                        max="99"
+                        value={ageRange[1]}
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          if (value >= ageRange[0]) {
+                            setAgeRange([ageRange[0], value]);
+                          }
+                        }}
+                        className="absolute top-0 w-full h-2 bg-transparent appearance-none cursor-pointer range-slider-thumb"
+                        style={{ zIndex: 2 }}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -160,10 +215,7 @@ export default function Map({ users, currentUser, onMessageUser, onSendBeer }: M
                   Mostrando <span className="font-bold text-[#C8102E]">{nearbyUsers.length}</span> usuario{nearbyUsers.length !== 1 ? 's' : ''}
                 </p>
                 <button
-                  onClick={() => {
-                    setAgeRange([18, 99]);
-                    setGenderFilter('todos');
-                  }}
+                  onClick={() => clearFilters()}
                   className="text-sm text-[#C8102E] hover:text-[#D4AF37] font-medium"
                 >
                   Limpiar filtros
@@ -174,6 +226,8 @@ export default function Map({ users, currentUser, onMessageUser, onSendBeer }: M
         </div>
 
         <div className="max-w-6xl mx-auto">
+          <FilterStatus />
+          
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               <div className="bg-[#F5F5F5] rounded-3xl overflow-hidden shadow-xl h-[500px] relative">

@@ -50,8 +50,8 @@ export default function Footer() {
           <div className="border-t border-[#F5F5F5] pt-8">
             <div className="bg-gradient-to-r from-[#C8102E] to-[#D4AF37] rounded-2xl p-6 text-white text-center mb-8">
               <Heart className="w-8 h-8 mx-auto mb-3 fill-white" />
-              <p className="text-xl font-bold mb-2">Bebe con la cabeza, no solo con el corazón</p>
-              <p className="text-white/90">Disfruta. No te pases.</p>
+              <p className="text-xl font-bold mb-2">Bebe con cabeza, escoge con el corazón</p>
+              <p className="text-white/90">Disfruta con consciencia</p>
             </div>
 
             <div className="text-center text-sm text-[#999999]">

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Star, Menu, X, LogOut } from 'lucide-react';
 
-type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages' | 'auth' | 'onboarding';
+type Page = 'home' | 'stars' | 'map' | 'faq' | 'messages' | 'auth' | 'onboarding';
 
 interface HeaderProps {
   isLoggedIn: boolean;
@@ -33,7 +33,6 @@ export default function Header({ isLoggedIn, currentPage, onNavigate, onLogout, 
   const appLinks = [
     { page: 'stars' as Page, label: 'Mis Estrellas' },
     { page: 'messages' as Page, label: 'Mensajes' },
-    { page: 'profile' as Page, label: 'Perfil' },
     { page: 'map' as Page, label: 'Mapa' },
     { page: 'faq' as Page, label: 'FAQ' }
   ];
@@ -59,7 +58,6 @@ export default function Header({ isLoggedIn, currentPage, onNavigate, onLogout, 
           >
             <div className="relative">
               <Star className="w-8 h-8 text-[#C8102E] fill-[#C8102E] transition-transform group-hover:rotate-12" />
-              <Star className="w-4 h-4 text-[#D4AF37] fill-[#D4AF37] absolute -top-1 -right-1 transition-transform group-hover:scale-110" />
             </div>
             <span className="text-xl font-bold text-[#C8102E]">Single Damm</span>
           </button>

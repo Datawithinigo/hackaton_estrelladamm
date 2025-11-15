@@ -4,18 +4,20 @@ import Hero from './components/Hero';
 import HowItWorks from './components/HowItWorks';
 import Auth from './components/Auth';
 import Onboarding from './components/Onboarding';
-import Dashboard from './components/Dashboard';
 import Map from './components/Map';
-import Messaging from './components/Messaging';
+import ChatFeatures from './components/ChatFeatures';
 import FAQ from './components/FAQ';
 import Footer from './components/Footer';
-import Profile from './components/Profile';
+import ProfileAndStars from './components/ProfileAndStars';
 import UsersList from './components/UsersList';
 import ChatWithLimits from './components/ChatWithLimits';
 import ConversationsWithLimits from './components/ConversationsWithLimits';
-import { User, DisplayUser, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserById, getUserByAuthId, signInWithGoogle, authenticateWithEmail, signOut, getCurrentAuthUser, supabase } from './lib/supabase';
+import FilterStatus from './components/FilterStatus';
+import { User, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserByAuthId, signInWithGoogle, authenticateWithEmail, signOut, getCurrentAuthUser, supabase } from './lib/supabase';
+import { uploadProfilePhoto, compressImage, deleteProfilePhoto } from './lib/imageUpload';
+import { FilterProvider } from './contexts/FilterContext';
 
-type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages' | 'auth' | 'onboarding';
+type Page = 'home' | 'stars' | 'map' | 'faq' | 'messages' | 'auth' | 'onboarding';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -118,30 +120,68 @@ function App() {
         console.log('🔐 New user needs onboarding');
         setPendingAuthEmail(email);
         setCurrentPage('onboarding');
-      } else if (result.type === 'signin') {
+        return;
+      } 
+      
+      if (result.type === 'signin') {
         console.log('🔐 User signed in, checking profile...');
-        const user = await getUserByAuthId(result.user.id);
-        if (user && user.id) {
-          if (!user.name || !user.age || !user.gender) {
-            console.log('🔐 Existing user needs onboarding');
+        try {
+          const user = await getUserByAuthId(result.user.id);
+          console.log('🔐 User from DB:', user);
+          
+          if (user && user.id) {
+            if (!user.name || !user.age || !user.gender) {
+              console.log('🔐 Existing user needs onboarding');
+              setPendingAuthEmail(email);
+              setCurrentPage('onboarding');
+            } else {
+              console.log('🔐 User complete, setting as logged in');
+              setUserData(user as User & { id: string });
+              setIsLoggedIn(true);
+              localStorage.setItem('currentUserId', user.id);
+              setCurrentPage('stars');
+            }
+          } else {
+            console.log('🔐 No user found in DB, creating record and needs onboarding');
+            // Create user record for existing auth user
+            try {
+              await createUser({
+                auth_user_id: result.user.id,
+                email: result.user.email || email,
+                stars: 0,
+                level: 'Bronce',
+                visible_on_map: false
+              });
+            } catch (createError) {
+              console.warn('🔐 User creation warning:', createError);
+            }
             setPendingAuthEmail(email);
             setCurrentPage('onboarding');
-          } else {
-            console.log('🔐 User complete, setting as logged in');
-            setUserData(user as User & { id: string });
-            setIsLoggedIn(true);
-            localStorage.setItem('currentUserId', user.id);
-            setCurrentPage('stars');
           }
-        } else {
-          console.log('🔐 No user found in DB, needs onboarding');
+        } catch (dbError) {
+          console.error('🔐 Database error:', dbError);
+          // If DB error, still allow onboarding
           setPendingAuthEmail(email);
           setCurrentPage('onboarding');
         }
       }
     } catch (error: any) {
       console.error('❌ Error during authentication:', error);
-      alert('Error al autenticar. Verifica tus credenciales e intenta de nuevo. Details: ' + error.message);
+      
+      // More specific error messages
+      let errorMessage = 'Error al autenticar. Verifica tus credenciales e intenta de nuevo.';
+      
+      if (error.message?.includes('Email not confirmed')) {
+        errorMessage = 'Por favor, confirma tu email antes de iniciar sesión.';
+      } else if (error.message?.includes('Invalid login credentials')) {
+        errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
+      } else if (error.message?.includes('Password should be at least 6 characters')) {
+        errorMessage = 'La contraseña debe tener al menos 6 caracteres.';
+      } else if (error.message?.includes('Unable to validate email address')) {
+        errorMessage = 'Email inválido. Verifica que sea una dirección de email válida.';
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -220,15 +260,36 @@ function App() {
 
   const handlePhotoUpload = async (file: File) => {
     if (!userData || !userData.id) return;
-    const photoUrl = URL.createObjectURL(file);
 
     try {
+      console.log('📸 Starting photo upload for user:', userData.id);
+      
+      // Compress image before upload
+      const compressedFile = await compressImage(file, 800, 0.8);
+      console.log('📸 Image compressed. Original size:', file.size, 'Compressed size:', compressedFile.size);
+      
+      // Delete old photo if it exists and is a storage URL
+      if (userData.profile_photo_url && userData.profile_photo_url.includes('profile-photos/')) {
+        console.log('📸 Deleting old profile photo...');
+        await deleteProfilePhoto(userData.profile_photo_url);
+      }
+      
+      // Upload new photo to Supabase Storage
+      console.log('📸 Uploading new photo...');
+      const photoUrl = await uploadProfilePhoto(compressedFile, userData.id);
+      
+      // Update user record in database
+      console.log('📸 Updating user record with new photo URL...');
       const updatedUser = await updateUser(userData.id, { profile_photo_url: photoUrl });
+      
       if (updatedUser) {
         setUserData(updatedUser as User & { id: string });
+        console.log('✅ Photo uploaded and user record updated successfully');
       }
     } catch (error) {
-      console.error('Error updating photo:', error);
+      console.error('❌ Error updating photo:', error);
+      // TODO: Show user-friendly error message
+      alert(error instanceof Error ? error.message : 'Error al subir la foto');
     }
   };
 
@@ -263,22 +324,105 @@ function App() {
   };
 
   const handleSendBeer = async (recipientId: string) => {
-    if (!userData) return;
+    if (!userData || !userData.id) {
+      console.error('❌ No user data available for beer sending');
+      alert('Error: No hay datos de usuario. Inicia sesión de nuevo.');
+      return;
+    }
+
+    if (!recipientId) {
+      console.error('❌ No recipient ID provided');
+      alert('Error: Usuario destinatario no válido.');
+      return;
+    }
+
+    console.log('🍺 Sending beer from', userData.id, 'to', recipientId);
 
     try {
-      const { error } = await supabase
+      // Validate that we're not sending to ourselves
+      if (userData.id === recipientId) {
+        alert('No puedes enviarte una cerveza a ti mismo 😅');
+        return;
+      }
+
+      // Check if recipient exists
+      const { data: recipient, error: recipientError } = await supabase
+        .from('users')
+        .select('id, name')
+        .eq('id', recipientId)
+        .single();
+
+      if (recipientError) {
+        console.error('❌ Recipient not found:', recipientError);
+        alert('Error: Usuario destinatario no encontrado.');
+        return;
+      }
+
+      console.log('🍺 Sending beer to:', recipient.name);
+
+      // Send the beer
+      const { data: beerData, error: beerError } = await supabase
         .from('beers_sent')
         .insert({
           sender_id: userData.id,
           recipient_id: recipientId
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (beerError) {
+        console.error('❌ Beer insertion failed:', beerError);
+        throw new Error('Error al enviar la cerveza: ' + beerError.message);
+      }
 
-      alert('🍺 ¡Cerveza enviada! El usuario recibirá una notificación.');
+      console.log('✅ Beer sent successfully:', beerData.id);
+
+      // Add bonus messages for sending a beer (with error handling)
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        
+        const { data: currentLimit, error: limitError } = await supabase
+          .from('daily_message_limits')
+          .select('messages_sent')
+          .eq('user_id', userData.id)
+          .eq('date', today)
+          .single();
+
+        if (limitError && limitError.code !== 'PGRST116') {
+          console.warn('⚠️ Error getting current limits:', limitError);
+        }
+          
+        const currentSent = currentLimit?.messages_sent || 0;
+        const newSent = Math.max(0, currentSent - 10); // Add 10 bonus messages
+        
+        console.log('📊 Current messages sent:', currentSent, '-> New count:', newSent);
+        
+        // Update daily limit to give bonus messages
+        const { error: bonusError } = await supabase
+          .from('daily_message_limits')
+          .upsert({
+            user_id: userData.id,
+            date: today,
+            messages_sent: newSent
+          }, {
+            onConflict: 'user_id,date'
+          });
+
+        if (bonusError) {
+          console.error('⚠️ Error adding beer bonus messages:', bonusError);
+          // Don't fail the whole operation for this
+        } else {
+          console.log('✅ Bonus messages added successfully');
+        }
+      } catch (bonusErr) {
+        console.warn('⚠️ Bonus message logic failed (non-critical):', bonusErr);
+      }
+
+      alert('🍺 ¡Cerveza enviada! Has recibido 10 mensajes adicionales por tu generosidad.');
     } catch (error) {
-      console.error('Error sending beer:', error);
-      alert('Error al enviar la cerveza. Inténtalo de nuevo.');
+      console.error('❌ Error sending beer:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      alert('Error al enviar la cerveza: ' + errorMessage);
     }
   };
 
@@ -339,10 +483,11 @@ function App() {
                       onClick={() => setCurrentPage('auth')}
                       className="bg-white text-[#C8102E] px-12 py-4 rounded-xl font-bold text-xl hover:shadow-2xl hover:scale-105 transition-all"
                     >
-                      Únete al juego
+                      Encuentra tu Estrella!
                     </button>
                   </div>
                 </section>
+                <ChatFeatures />
               </div>
               <Footer />
             </div>
@@ -371,44 +516,6 @@ function App() {
           </div>
         );
 
-      case 'profile':
-        return (
-          <div className="min-h-screen bg-white">
-            <Header
-              isLoggedIn={isLoggedIn}
-              currentPage={currentPage}
-              onNavigate={setCurrentPage}
-              onLogout={handleLogout}
-              userName={userData?.name}
-            />
-            <div className="pt-20">
-              <section className="py-20 bg-[#F5F5F5] min-h-screen">
-                <div className="container mx-auto px-4">
-                  <div className="text-center mb-12">
-                    <h2 className="text-4xl md:text-5xl font-bold text-[#333333] mb-4">
-                      Mi Perfil
-                    </h2>
-                    <p className="text-xl text-[#666666]">
-                      Así te ven los demás cazadores de estrellas
-                    </p>
-                  </div>
-                  {userData && (
-                    <div className="max-w-4xl mx-auto">
-                      <Profile
-                        userData={userData}
-                        onPhotoUpload={handlePhotoUpload}
-                        onBioUpdate={handleBioUpdate}
-                        isEditable={true}
-                      />
-                    </div>
-                  )}
-                </div>
-              </section>
-            </div>
-            <Footer />
-          </div>
-        );
-
       case 'stars':
         return (
           <div className="min-h-screen bg-white">
@@ -422,18 +529,24 @@ function App() {
             <div className="pt-20">
               {isLoggedIn && userData && (
                 <>
-                  <Dashboard userData={userData} onAddStar={handleAddStar} />
-                  <section id="usuarios" className="py-20 bg-white">
+                  <ProfileAndStars 
+                    userData={userData} 
+                    onAddStar={handleAddStar}
+                    onPhotoUpload={handlePhotoUpload}
+                    onBioUpdate={handleBioUpdate}
+                  />
+                      <section id="usuarios" className="py-20 bg-white">
                     <div className="container mx-auto px-4">
                       <div className="text-center mb-12">
                         <h2 className="text-4xl md:text-5xl font-bold text-[#333333] mb-4">
-                          Conecta con otros cazadores
+                          Conecta con otras Estrellas
                         </h2>
                         <p className="text-xl text-[#666666]">
                           Envía mensajes y conoce gente con buen rollo
                         </p>
                       </div>
                       <div className="max-w-4xl mx-auto">
+                        <FilterStatus className="justify-center" />
                         <UsersList
                           users={allUsers}
                           currentUserId={userData.id}
@@ -466,7 +579,6 @@ function App() {
                 onMessageUser={handleSelectUser}
                 onSendBeer={handleSendBeer}
               />
-              <Messaging />
             </div>
             <Footer />
           </div>
@@ -502,7 +614,12 @@ function App() {
             />
             <div className="pt-20">
               {userData && (
-                <Dashboard userData={userData} onAddStar={handleAddStar} />
+                <ProfileAndStars 
+                  userData={userData} 
+                  onAddStar={handleAddStar}
+                  onPhotoUpload={handlePhotoUpload}
+                  onBioUpdate={handleBioUpdate}
+                />
               )}
             </div>
             <Footer />
@@ -523,7 +640,7 @@ function App() {
   }
 
   return (
-    <>
+    <FilterProvider>
       {renderPage()}
       {selectedUser && userData && (
         <ChatWithLimits
@@ -532,7 +649,7 @@ function App() {
           onBack={() => setSelectedUser(null)}
         />
       )}
-    </>
+    </FilterProvider>
   );
 }
 

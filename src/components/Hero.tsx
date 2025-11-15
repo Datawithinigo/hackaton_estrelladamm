@@ -1,4 +1,4 @@
-import { ArrowRight, Smartphone, Star } from 'lucide-react';
+import { ArrowRight, Star } from 'lucide-react';
 
 export default function Hero() {
   return (
@@ -7,9 +7,9 @@ export default function Hero() {
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div className="space-y-6 animate-fade-in">
             <h1 className="text-5xl md:text-6xl font-bold text-[#333333] leading-tight">
-              Conoce a tus{' '}
-              <span className="text-[#C8102E]">estrellas</span>.{' '}
-              <span className="block mt-2">Las humanas.</span>
+              Encuentra tu{' '}
+              <span className="text-[#C8102E]">estrella</span>.{' '}
+              {/* <span className="block mt-2">Las humanas.</span> */}
             </h1>
             <p className="text-xl text-[#666666] leading-relaxed">
               Escanea tu birra, entra al juego, descubre quién brilla cerca
@@ -36,10 +36,15 @@ export default function Hero() {
 
           <div className="relative animate-float">
             <div className="relative z-10">
-              <div className="bg-gradient-to-br from-[#C8102E] to-[#8B0A1F] rounded-3xl p-8 shadow-2xl transform rotate-3 hover:rotate-0 transition-transform">
-                <Smartphone className="w-full h-96 text-white/20" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="bg-white rounded-2xl p-6 shadow-xl max-w-xs w-full">
+              <div className="rounded-3xl overflow-hidden shadow-2xl transform rotate-3 hover:rotate-0 transition-transform">
+                <img 
+                  src="/images/hero-beer-social.jpeg" 
+                  alt="Grupo de personas disfrutando de cerveza en un bar"
+                  className="w-full h-96 object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                <div className="absolute bottom-6 left-6 right-6">
+                  <div className="bg-white rounded-2xl p-6 shadow-xl backdrop-blur-sm bg-white/95">
                     <div className="flex items-center gap-3 mb-4">
                       <Star className="w-8 h-8 text-[#D4AF37] fill-[#D4AF37]" />
                       <div>

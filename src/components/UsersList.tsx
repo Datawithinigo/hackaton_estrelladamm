@@ -1,5 +1,6 @@
 import { User } from '../lib/supabase';
 import { Star, MessageCircle } from 'lucide-react';
+import { useFilters } from '../contexts/FilterContext';
 
 interface UsersListProps {
   users: (User & { id: string })[];
@@ -9,7 +10,9 @@ interface UsersListProps {
 }
 
 export default function UsersList({ users, currentUserId, onSelectUser, isLoading }: UsersListProps) {
-  const getLevelColor = (level: string) => {
+  const { applyFilters } = useFilters();
+  
+  const getLevelColor = (level?: string) => {
     switch (level) {
       case 'Oro':
         return 'text-[#D4AF37]';
@@ -20,7 +23,8 @@ export default function UsersList({ users, currentUserId, onSelectUser, isLoadin
     }
   };
 
-  const otherUsers = users.filter(u => u.id !== currentUserId);
+  // Apply global filters to the user list
+  const filteredUsers = applyFilters(users, currentUserId);
 
   if (isLoading) {
     return (
@@ -34,12 +38,12 @@ export default function UsersList({ users, currentUserId, onSelectUser, isLoadin
 
   return (
     <div className="space-y-3">
-      {otherUsers.length === 0 ? (
+      {filteredUsers.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-[#999999] text-lg">No hay usuarios disponibles</p>
         </div>
       ) : (
-        otherUsers.map((user) => (
+        filteredUsers.map((user) => (
           <button
             key={user.id}
             onClick={() => onSelectUser(user)}
@@ -53,7 +57,7 @@ export default function UsersList({ users, currentUserId, onSelectUser, isLoadin
               />
             ) : (
               <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#C8102E] to-[#D4AF37] flex items-center justify-center text-white font-bold flex-shrink-0">
-                {user.name.charAt(0).toUpperCase()}
+                {user.name?.charAt(0).toUpperCase() || '?'}
               </div>
             )}
 

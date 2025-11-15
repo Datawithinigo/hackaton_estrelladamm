@@ -66,7 +66,7 @@ function SimpleApp() {
                     onClick={() => setCurrentPage('auth')}
                     className="bg-white text-[#C8102E] px-12 py-4 rounded-xl font-bold text-xl hover:shadow-2xl hover:scale-105 transition-all"
                   >
-                    Únete al juego
+                    Encuentra tu Estrella!
                   </button>
                 </div>
               </section>

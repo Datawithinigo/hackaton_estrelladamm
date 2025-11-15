@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://wjqwvnsnliacghigteyv.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqcXd2bnNubGlhY2doaWd0ZXl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyMjI2NTYsImV4cCI6MjA3ODc5ODY1Nn0.Z0SpW4VaB4RbFm7WgsRI0ss-uMWX0s0qVekFZjX--Ss';
+// Hardcoded Supabase credentials - no environment variables
+const supabaseUrl = 'https://wjqwvnsnliacghigteyv.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqcXd2bnNubGlhY2doaWd0ZXl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyMjI2NTYsImV4cCI6MjA3ODc5ODY1Nn0.Z0SpW4VaB4RbFm7WgsRI0ss-uMWX0s0qVekFZjX--Ss';
 
-console.log('🔧 Supabase configuration loaded');
+console.log('🔧 Using hardcoded Supabase credentials');
 console.log('URL:', supabaseUrl);
 console.log('Key length:', supabaseAnonKey.length);
 
@@ -92,9 +93,15 @@ export const sendMessage = async (senderId: string, recipientId: string, content
 };
 
 export const createUser = async (userData: User) => {
+  // Asegurar que visible_on_map sea true por defecto
+  const userDataWithDefaults = {
+    ...userData,
+    visible_on_map: userData.visible_on_map !== undefined ? userData.visible_on_map : true
+  };
+  
   const { data, error } = await supabase
     .from('users')
-    .insert([userData])
+    .insert([userDataWithDefaults])
     .select()
     .single();
 
@@ -137,13 +144,19 @@ export const getUserByEmail = async (email: string) => {
 };
 
 export const getUserByAuthId = async (authUserId: string) => {
+  console.log('🔍 Looking for user by auth ID:', authUserId);
   const { data, error } = await supabase
     .from('users')
     .select('*')
     .eq('auth_user_id', authUserId)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error('🔍 Error fetching user by auth ID:', error);
+    throw error;
+  }
+  
+  console.log('🔍 Found user by auth ID:', data);
   return data;
 };
 
@@ -228,44 +241,92 @@ export const signInWithEmail = async (email: string, password: string) => {
 };
 
 export const authenticateWithEmail = async (email: string, password: string) => {
+  console.log('🔐 Starting authentication for:', email);
+  console.log('🔐 Password length:', password.length);
+  
   try {
+    // First, try to sign in
+    console.log('🔐 Attempting sign in...');
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
-    if (!signInError && signInData.user) {
+    console.log('🔐 Sign in response:', { data: signInData, error: signInError });
+
+    if (signInData.user && !signInError) {
+      console.log('🔐 Sign in successful for user:', signInData.user.id);
       return { type: 'signin' as const, user: signInData.user };
     }
 
-    if (signInError?.message.includes('Invalid login credentials')) {
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password
-      });
+    // If sign in fails, try to sign up (new user)
+    if (signInError) {
+      console.log('🔐 Sign in failed with error:', signInError.message);
+      
+      if (signInError.message.includes('Invalid login credentials') ||
+          signInError.message.includes('Email not confirmed') ||
+          signInError.message.includes('User not found')) {
+        
+        console.log('🔐 Sign in failed, attempting sign up...');
+        
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password
+        });
 
-      if (signUpError) throw signUpError;
-      if (!signUpData.user) throw new Error('No user returned from signup');
+        console.log('🔐 Sign up response:', { data: signUpData, error: signUpError });
 
-      const { data: userRecord, error: userError } = await supabase
-        .from('users')
-        .insert([{
-          auth_user_id: signUpData.user.id,
-          email: signUpData.user.email,
-          stars: 0,
-          level: 'Bronce',
-          visible_on_map: false
-        }])
-        .select()
-        .single();
+        if (signUpError) {
+          console.error('🔐 Sign up error:', signUpError);
+          throw signUpError;
+        }
+        
+        if (!signUpData.user) {
+          throw new Error('No user returned from signup');
+        }
 
-      if (userError) throw userError;
+        console.log('🔐 Sign up successful, user ID:', signUpData.user.id);
+        
+        // Create user record in our custom users table
+        try {
+          console.log('🔐 Creating user record in database...');
+          const { data: userRecord, error: userError } = await supabase
+            .from('users')
+            .insert([{
+              auth_user_id: signUpData.user.id,
+              email: signUpData.user.email,
+              stars: 0,
+              level: 'Bronce',
+              visible_on_map: false
+            }])
+            .select()
+            .single();
 
-      return { type: 'signup' as const, user: signUpData.user, needsOnboarding: true };
+          if (userError) {
+            console.error('🔐 User record creation error:', userError);
+            // Don't throw here, user might already exist
+          } else {
+            console.log('🔐 User record created successfully:', userRecord);
+          }
+
+        } catch (dbError) {
+          console.warn('🔐 User record creation warning:', dbError);
+          // Continue anyway, onboarding will handle missing data
+        }
+
+        return { type: 'signup' as const, user: signUpData.user, needsOnboarding: true };
+      } else {
+        // If we get here, there was an actual sign-in error
+        console.error('🔐 Authentication failed with error:', signInError);
+        throw signInError;
+      }
     }
 
-    throw signInError;
+    // This shouldn't happen but just in case
+    throw new Error('Unexpected authentication state');
+    
   } catch (error) {
+    console.error('🔐 Authentication error:', error);
     throw error;
   }
 };

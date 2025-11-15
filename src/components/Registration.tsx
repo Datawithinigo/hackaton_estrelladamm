@@ -44,7 +44,7 @@ export default function Registration({ onRegister, onGoogleRegister, isLoggedIn 
           <div className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl">
             <div className="text-center mb-8">
               <h2 className="text-4xl font-bold text-[#333333] mb-4">
-                Únete al juego
+                Encuentra tu Estrella!
               </h2>
               <p className="text-[#666666] italic">
                 Dos minutos rellenando esto, muchas noches de chat interesante

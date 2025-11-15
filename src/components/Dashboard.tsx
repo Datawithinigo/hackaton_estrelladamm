@@ -46,7 +46,7 @@ export default function Dashboard({ userData, onAddStar }: DashboardProps) {
             <div className={`bg-gradient-to-r ${getLevelColor(level)} p-8 text-white`}>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <p className="text-lg opacity-90">Hola, cazador</p>
+                  <p className="text-lg opacity-90">Hola, estrella</p>
                   <h2 className="text-4xl font-bold">{name}</h2>
                 </div>
                 <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-3">

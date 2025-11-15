@@ -5,7 +5,7 @@ export default function HowItWorks() {
     {
       icon: QrCode,
       title: 'Escanea el QR de tu botella',
-      description: 'Cada botella es tu entrada al juego'
+      description: 'Cada botella es una posibilidad de encontrar el Amor'
     },
     {
       icon: UserPlus,
@@ -14,13 +14,13 @@ export default function HowItWorks() {
     },
     {
       icon: Star,
-      title: 'Suma tus estrellas Damm',
-      description: 'Más botellas, más poder'
+      title: 'Conoce otros Single Damm',
+      description: 'Más botellas, más posibilidades de brillar'
     },
     {
       icon: MessageCircle,
-      title: 'Desbloquea mensajes',
-      description: 'Ve quién hay cerca y conecta'
+      title: 'Conecta',
+      description: 'Ve quién hay cerca y atrevete a escriblirle!'
     }
   ];
 

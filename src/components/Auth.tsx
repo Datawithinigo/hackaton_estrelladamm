@@ -22,7 +22,7 @@ export default function Auth({ onAuth, onGoogleAuth }: AuthProps) {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-[#333333] mb-4">
-            Únete al juego
+            Encuentra tu Estrella!
           </h1>
           <p className="text-xl text-[#666666] italic">
             Dos minutos rellenando esto, muchas noches de chat interesante

@@ -1,6 +1,6 @@
 import { MessageCircle, Send, Star, Shield } from 'lucide-react';
 
-export default function Messaging() {
+export default function ChatFeatures() {
   const levels = [
     {
       name: 'Bronce',

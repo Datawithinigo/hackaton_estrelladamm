@@ -75,7 +75,7 @@ export default function Conversations({ currentUser, users, messages, onSelectUs
                 <MessageCircle className="w-8 h-8 text-white" />
                 <div>
                   <h1 className="text-3xl font-bold text-white">Mensajes</h1>
-                  <p className="text-white/90">Conecta con otros cazadores de estrellas</p>
+                  <p className="text-white/90">Conecta con otras Estrellas</p>
                 </div>
               </div>
             </div>
