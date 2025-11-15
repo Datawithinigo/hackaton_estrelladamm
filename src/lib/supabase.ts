@@ -97,3 +97,14 @@ export const getUserById = async (userId: string) => {
   if (error) throw error;
   return data;
 };
+
+export const getUserByEmail = async (email: string) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+};

@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Star, Menu, X } from 'lucide-react';
+import { Star, Menu, X, LogOut } from 'lucide-react';
 
-type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages';
+type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages' | 'login';
 
 interface HeaderProps {
   isLoggedIn: boolean;
   currentPage: Page;
   onNavigate: (page: Page) => void;
+  onLogout?: () => void;
+  userName?: string;
 }
 
-export default function Header({ isLoggedIn, currentPage, onNavigate }: HeaderProps) {
+export default function Header({ isLoggedIn, currentPage, onNavigate, onLogout, userName }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -22,15 +24,21 @@ export default function Header({ isLoggedIn, currentPage, onNavigate }: HeaderPr
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks = [
-    { page: 'home' as Page, label: 'Cómo funciona' },
-    { page: 'home' as Page, label: 'Registro' },
+  const landingLinks = [
+    { page: 'home' as Page, label: 'Cómo funciona', scroll: true },
+    { page: 'login' as Page, label: 'Iniciar Sesión', scroll: false },
+    { page: 'faq' as Page, label: 'FAQ', scroll: false }
+  ];
+
+  const appLinks = [
     { page: 'stars' as Page, label: 'Mis Estrellas' },
     { page: 'messages' as Page, label: 'Mensajes' },
     { page: 'profile' as Page, label: 'Perfil' },
     { page: 'map' as Page, label: 'Mapa' },
     { page: 'faq' as Page, label: 'FAQ' }
   ];
+
+  const navLinks = isLoggedIn ? appLinks : landingLinks;
 
   const handleNavClick = (page: Page) => {
     onNavigate(page);
@@ -56,7 +64,7 @@ export default function Header({ isLoggedIn, currentPage, onNavigate }: HeaderPr
             <span className="text-xl font-bold text-[#C8102E]">Estrella Connect</span>
           </button>
 
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-6">
             {navLinks.map((link, index) => (
               <button
                 key={index}
@@ -70,6 +78,25 @@ export default function Header({ isLoggedIn, currentPage, onNavigate }: HeaderPr
                 {link.label}
               </button>
             ))}
+            {isLoggedIn && onLogout && (
+              <>
+                <div className="h-6 w-px bg-[#E5E5E5]"></div>
+                <div className="flex items-center gap-3">
+                  {userName && (
+                    <span className="text-sm font-medium text-[#666666]">
+                      {userName}
+                    </span>
+                  )}
+                  <button
+                    onClick={onLogout}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#F5F5F5] hover:bg-[#E5E5E5] rounded-lg transition-colors font-medium text-[#666666]"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Salir
+                  </button>
+                </div>
+              </>
+            )}
           </nav>
 
           <button
@@ -95,6 +122,26 @@ export default function Header({ isLoggedIn, currentPage, onNavigate }: HeaderPr
                 {link.label}
               </button>
             ))}
+            {isLoggedIn && onLogout && (
+              <>
+                <div className="h-px bg-[#E5E5E5] my-2"></div>
+                {userName && (
+                  <span className="text-sm font-medium text-[#666666]">
+                    {userName}
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    onLogout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#F5F5F5] hover:bg-[#E5E5E5] rounded-lg transition-colors font-medium text-[#666666]"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Salir
+                </button>
+              </>
+            )}
           </nav>
         )}
       </div>

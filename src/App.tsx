@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
-import Hero from './components/Hero';
-import HowItWorks from './components/HowItWorks';
-import Registration from './components/Registration';
+import Landing from './components/Landing';
+import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Map from './components/Map';
 import Messaging from './components/Messaging';
@@ -12,9 +11,9 @@ import Profile from './components/Profile';
 import UsersList from './components/UsersList';
 import ChatWithLimits from './components/ChatWithLimits';
 import ConversationsWithLimits from './components/ConversationsWithLimits';
-import { User, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserById, supabase } from './lib/supabase';
+import { User, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserById, getUserByEmail, supabase } from './lib/supabase';
 
-type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages';
+type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages' | 'login';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -118,12 +117,14 @@ function App() {
     }
   };
 
-  const handleRegistration = async (data: { name: string; age: number; gender: string }) => {
+  const handleRegistration = async (name: string, age: number, gender: 'hombre' | 'mujer', email: string, bio: string) => {
     try {
       const newUser = await createUser({
-        name: data.name,
-        age: data.age,
-        gender: data.gender,
+        name,
+        age,
+        gender,
+        email,
+        bio,
         stars: 0,
         level: 'Bronce',
         visible_on_map: false
@@ -133,12 +134,39 @@ function App() {
         setUserData(newUser as User & { id: string });
         setIsLoggedIn(true);
         localStorage.setItem('currentUserId', newUser.id);
-        setCurrentPage('profile');
+        setCurrentPage('stars');
       }
     } catch (error) {
       console.error('Error creating user:', error);
       alert('Error al crear el usuario. Por favor, intenta de nuevo.');
     }
+  };
+
+  const handleLogin = async (email: string) => {
+    try {
+      const user = await getUserByEmail(email);
+      if (user && user.id) {
+        setUserData(user as User & { id: string });
+        setIsLoggedIn(true);
+        localStorage.setItem('currentUserId', user.id);
+        setCurrentPage('stars');
+      } else {
+        alert('Usuario no encontrado. ¿Quieres registrarte?');
+      }
+    } catch (error) {
+      console.error('Error logging in:', error);
+      alert('Error al iniciar sesión. Por favor, intenta de nuevo.');
+    }
+  };
+
+  const handleLogout = () => {
+    setUserData(null);
+    setIsLoggedIn(false);
+    setSelectedUser(null);
+    setMessages([]);
+    setAllMessages([]);
+    localStorage.removeItem('currentUserId');
+    setCurrentPage('home');
   };
 
   const handleAddStar = async () => {
@@ -223,11 +251,66 @@ function App() {
   };
 
   const renderPage = () => {
+    if (!isLoggedIn) {
+      switch (currentPage) {
+        case 'login':
+          return (
+            <div className="min-h-screen bg-white">
+              <Header
+                isLoggedIn={false}
+                currentPage={currentPage}
+                onNavigate={setCurrentPage}
+              />
+              <Login
+                onLogin={handleLogin}
+                onSwitchToRegister={() => setCurrentPage('home')}
+              />
+            </div>
+          );
+
+        case 'faq':
+          return (
+            <div className="min-h-screen bg-white">
+              <Header
+                isLoggedIn={false}
+                currentPage={currentPage}
+                onNavigate={setCurrentPage}
+              />
+              <div className="pt-20">
+                <FAQ />
+              </div>
+              <Footer />
+            </div>
+          );
+
+        case 'home':
+        default:
+          return (
+            <div className="min-h-screen bg-white">
+              <Header
+                isLoggedIn={false}
+                currentPage={currentPage}
+                onNavigate={setCurrentPage}
+              />
+              <div className="pt-20">
+                <Landing onRegister={handleRegistration} />
+              </div>
+            </div>
+          );
+      }
+    }
+
     switch (currentPage) {
       case 'messages':
         return (
           <div className="min-h-screen bg-white">
-            <Header isLoggedIn={isLoggedIn} currentPage={currentPage} onNavigate={setCurrentPage} />
+            <Header
+              isLoggedIn={isLoggedIn}
+              currentPage={currentPage}
+              onNavigate={setCurrentPage}
+              onLogout={handleLogout}
+              userName={userData?.name}
+            />
             {userData && (
               <ConversationsWithLimits
                 currentUser={userData}
@@ -241,7 +324,13 @@ function App() {
       case 'profile':
         return (
           <div className="min-h-screen bg-white">
-            <Header isLoggedIn={isLoggedIn} currentPage={currentPage} onNavigate={setCurrentPage} />
+            <Header
+              isLoggedIn={isLoggedIn}
+              currentPage={currentPage}
+              onNavigate={setCurrentPage}
+              onLogout={handleLogout}
+              userName={userData?.name}
+            />
             <div className="pt-20">
               <section className="py-20 bg-[#F5F5F5] min-h-screen">
                 <div className="container mx-auto px-4">
@@ -273,7 +362,13 @@ function App() {
       case 'stars':
         return (
           <div className="min-h-screen bg-white">
-            <Header isLoggedIn={isLoggedIn} currentPage={currentPage} onNavigate={setCurrentPage} />
+            <Header
+              isLoggedIn={isLoggedIn}
+              currentPage={currentPage}
+              onNavigate={setCurrentPage}
+              onLogout={handleLogout}
+              userName={userData?.name}
+            />
             <div className="pt-20">
               {isLoggedIn && userData && (
                 <>
@@ -307,7 +402,13 @@ function App() {
       case 'map':
         return (
           <div className="min-h-screen bg-white">
-            <Header isLoggedIn={isLoggedIn} currentPage={currentPage} onNavigate={setCurrentPage} />
+            <Header
+              isLoggedIn={isLoggedIn}
+              currentPage={currentPage}
+              onNavigate={setCurrentPage}
+              onLogout={handleLogout}
+              userName={userData?.name}
+            />
             <div className="pt-20">
               <Map
                 users={allUsers}
@@ -324,7 +425,13 @@ function App() {
       case 'faq':
         return (
           <div className="min-h-screen bg-white">
-            <Header isLoggedIn={isLoggedIn} currentPage={currentPage} onNavigate={setCurrentPage} />
+            <Header
+              isLoggedIn={isLoggedIn}
+              currentPage={currentPage}
+              onNavigate={setCurrentPage}
+              onLogout={handleLogout}
+              userName={userData?.name}
+            />
             <div className="pt-20">
               <FAQ />
             </div>
@@ -332,16 +439,22 @@ function App() {
           </div>
         );
 
+      case 'home':
       default:
         return (
           <div className="min-h-screen bg-white">
-            <Header isLoggedIn={isLoggedIn} currentPage={currentPage} onNavigate={setCurrentPage} />
-            <Hero />
-            <HowItWorks />
-            <Registration onRegister={handleRegistration} isLoggedIn={isLoggedIn} />
-            {isLoggedIn && userData && (
-              <Dashboard userData={userData} onAddStar={handleAddStar} />
-            )}
+            <Header
+              isLoggedIn={isLoggedIn}
+              currentPage={currentPage}
+              onNavigate={setCurrentPage}
+              onLogout={handleLogout}
+              userName={userData?.name}
+            />
+            <div className="pt-20">
+              {userData && (
+                <Dashboard userData={userData} onAddStar={handleAddStar} />
+              )}
+            </div>
             <Footer />
           </div>
         );
