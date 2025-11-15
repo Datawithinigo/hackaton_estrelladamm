@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Star, Menu, X } from 'lucide-react';
 
-type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq';
+type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages';
 
 interface HeaderProps {
   isLoggedIn: boolean;
@@ -26,6 +26,7 @@ export default function Header({ isLoggedIn, currentPage, onNavigate }: HeaderPr
     { page: 'home' as Page, label: 'Cómo funciona' },
     { page: 'home' as Page, label: 'Registro' },
     { page: 'stars' as Page, label: 'Mis Estrellas' },
+    { page: 'messages' as Page, label: 'Mensajes' },
     { page: 'profile' as Page, label: 'Perfil' },
     { page: 'map' as Page, label: 'Mapa' },
     { page: 'faq' as Page, label: 'FAQ' }

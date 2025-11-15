@@ -11,9 +11,10 @@ import Footer from './components/Footer';
 import Profile from './components/Profile';
 import UsersList from './components/UsersList';
 import Chat from './components/Chat';
+import Conversations from './components/Conversations';
 import { User, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserById } from './lib/supabase';
 
-type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq';
+type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -21,6 +22,7 @@ function App() {
   const [allUsers, setAllUsers] = useState<(User & { id: string })[]>([]);
   const [selectedUser, setSelectedUser] = useState<(User & { id: string }) | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [allMessages, setAllMessages] = useState<Message[]>([]);
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -65,8 +67,22 @@ function App() {
   useEffect(() => {
     if (isLoggedIn) {
       loadUsers();
+      loadAllMessages();
     }
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const interval = setInterval(() => {
+      loadAllMessages();
+      if (selectedUser && userData) {
+        loadConversation(userData.id, selectedUser.id);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isLoggedIn, selectedUser, userData]);
 
   const loadUsers = async () => {
     try {
@@ -74,6 +90,31 @@ function App() {
       setAllUsers(users as (User & { id: string })[]);
     } catch (error) {
       console.error('Error loading users:', error);
+    }
+  };
+
+  const loadAllMessages = async () => {
+    if (!userData) return;
+    try {
+      const allMsgs: Message[] = [];
+      for (const user of allUsers) {
+        if (user.id !== userData.id) {
+          const conv = await getConversation(userData.id, user.id);
+          allMsgs.push(...conv);
+        }
+      }
+      setAllMessages(allMsgs);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  };
+
+  const loadConversation = async (userId: string, otherUserId: string) => {
+    try {
+      const conversation = await getConversation(userId, otherUserId);
+      setMessages(conversation);
+    } catch (error) {
+      console.error('Error loading conversation:', error);
     }
   };
 
@@ -147,21 +188,15 @@ function App() {
   const handleSelectUser = async (user: User & { id: string }) => {
     if (!userData) return;
     setSelectedUser(user);
-    try {
-      const conversation = await getConversation(userData.id, user.id);
-      setMessages(conversation);
-    } catch (error) {
-      console.error('Error loading conversation:', error);
-      setMessages([]);
-    }
+    await loadConversation(userData.id, user.id);
   };
 
   const handleSendMessage = async (content: string) => {
     if (!userData || !selectedUser) return;
     try {
       await sendMessage(userData.id, selectedUser.id, content);
-      const updatedConversation = await getConversation(userData.id, selectedUser.id);
-      setMessages(updatedConversation);
+      await loadConversation(userData.id, selectedUser.id);
+      await loadAllMessages();
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -169,6 +204,22 @@ function App() {
 
   const renderPage = () => {
     switch (currentPage) {
+      case 'messages':
+        return (
+          <div className="min-h-screen bg-white">
+            <Header isLoggedIn={isLoggedIn} currentPage={currentPage} onNavigate={setCurrentPage} />
+            {userData && (
+              <Conversations
+                currentUser={userData}
+                users={allUsers}
+                messages={allMessages}
+                onSelectUser={handleSelectUser}
+              />
+            )}
+            <Footer />
+          </div>
+        );
+
       case 'profile':
         return (
           <div className="min-h-screen bg-white">
