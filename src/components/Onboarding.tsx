@@ -27,11 +27,8 @@ export default function Onboarding({ email, onComplete }: OnboardingProps) {
             <User className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-[#333333] mb-4">
-            ¡Bienvenido a Estrella Connect!
-          </h1>
-          <p className="text-xl text-[#666666] mb-2">
             Completa tu perfil para empezar
-          </p>
+          </h1>
           <p className="text-sm text-[#999999]">
             Iniciaste sesión con: <span className="font-medium text-[#C8102E]">{email}</span>
           </p>
