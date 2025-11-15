@@ -410,42 +410,18 @@ function AppContent() {
 
       console.log('✅ Beer message sent successfully');
 
-      // Add bonus messages for sending a beer (with error handling)
+      // Add bonus messages for sending a beer using the proper function
       try {
-        const today = new Date().toISOString().split('T')[0];
-        
-        const { data: currentLimit, error: limitError } = await supabase
-          .from('daily_message_limits')
-          .select('messages_sent')
-          .eq('user_id', userData.id)
-          .eq('date', today)
-          .single();
-
-        if (limitError && limitError.code !== 'PGRST116') {
-          console.warn('⚠️ Error getting current limits:', limitError);
-        }
-          
-        const currentSent = currentLimit?.messages_sent || 0;
-        const newSent = Math.max(0, currentSent - 10); // Add 10 bonus messages
-        
-        console.log('📊 Current messages sent:', currentSent, '-> New count:', newSent);
-        
-        // Update daily limit to give bonus messages
-        const { error: bonusError } = await supabase
-          .from('daily_message_limits')
-          .upsert({
-            user_id: userData.id,
-            date: today,
-            messages_sent: newSent
-          }, {
-            onConflict: 'user_id,date'
-          });
+        const { data: bonusResult, error: bonusError } = await supabase.rpc('add_beer_bonus_messages', {
+          p_user_id: userData.id,
+          p_bonus_amount: 10
+        });
 
         if (bonusError) {
           console.error('⚠️ Error adding beer bonus messages:', bonusError);
           // Don't fail the whole operation for this
         } else {
-          console.log('✅ Bonus messages added successfully');
+          console.log('✅ Bonus messages added successfully:', bonusResult);
         }
       } catch (bonusErr) {
         console.warn('⚠️ Bonus message logic failed (non-critical):', bonusErr);

@@ -15,9 +15,14 @@ export const useMessageLimits = (userId: string | undefined, userLevel: string):
   const [messagesSent, setMessagesSent] = useState(0);
   const [bonusMessages, setBonusMessages] = useState(0);
   const [levelBonus, setLevelBonus] = useState(0);
-  const [totalAvailable, setTotalAvailable] = useState(30);
+  const [totalAvailable, setTotalAvailable] = useState(5);
   
-  const dailyLimit = 30; // New base limit
+  // Base limit depends on level: Bronce=5, Plata=5, Oro=30
+  const getBaseDailyLimit = (level: string) => {
+    return level === 'Oro' ? 30 : 5;
+  };
+  
+  const dailyLimit = getBaseDailyLimit(userLevel);
 
   useEffect(() => {
     if (!userId) return;
@@ -31,11 +36,11 @@ export const useMessageLimits = (userId: string | undefined, userLevel: string):
         });
 
         if (!statusError && statusData) {
-          // Use the new system with bonus messages and level bonuses
+          // Use the new system with bonus messages
           setMessagesSent(statusData.messages_sent || 0);
           setBonusMessages(statusData.bonus_messages || 0);
-          setLevelBonus(statusData.level_bonus || 0);
-          setTotalAvailable(statusData.total_available || 30);
+          setLevelBonus(0); // No longer using level bonus
+          setTotalAvailable(statusData.total_available || getBaseDailyLimit(userLevel));
         } else {
           console.error('Error getting message status:', statusError);
           // Fallback to checking daily_message_limits directly
@@ -50,10 +55,9 @@ export const useMessageLimits = (userId: string | undefined, userLevel: string):
           if (limitData) {
             setMessagesSent(limitData.messages_sent || 0);
             setBonusMessages(limitData.bonus_messages || 0);
-            // Calculate level bonus manually for fallback
-            const levelBonusValue = userLevel === 'Oro' ? 10 : userLevel === 'Plata' ? 5 : 0;
-            setLevelBonus(levelBonusValue);
-            setTotalAvailable(Math.min(30 + levelBonusValue, 30) + (limitData.bonus_messages || 0));
+            setLevelBonus(0);
+            const baseLimit = getBaseDailyLimit(userLevel);
+            setTotalAvailable(baseLimit + (limitData.bonus_messages || 0));
           }
         }
       } catch (error) {
