@@ -6,7 +6,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface User {
-  id: string;
+  id?: string;
   name: string;
   age: number;
   gender: string;
@@ -16,7 +16,7 @@ export interface User {
   profile_photo_url?: string;
   bio?: string;
   visible_on_map: boolean;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface Message {
@@ -59,6 +59,40 @@ export const sendMessage = async (senderId: string, recipientId: string, content
     }])
     .select()
     .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const createUser = async (userData: User) => {
+  const { data, error } = await supabase
+    .from('users')
+    .insert([userData])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const updateUser = async (userId: string, updates: Partial<User>) => {
+  const { data, error } = await supabase
+    .from('users')
+    .update(updates)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const getUserById = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
 
   if (error) throw error;
   return data;

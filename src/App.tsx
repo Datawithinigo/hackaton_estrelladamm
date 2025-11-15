@@ -11,7 +11,7 @@ import Footer from './components/Footer';
 import Profile from './components/Profile';
 import UsersList from './components/UsersList';
 import Chat from './components/Chat';
-import { User, Message, getAllUsers, getConversation, sendMessage } from './lib/supabase';
+import { User, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserById } from './lib/supabase';
 
 type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq';
 
@@ -22,6 +22,28 @@ function App() {
   const [selectedUser, setSelectedUser] = useState<(User & { id: string }) | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentPage, setCurrentPage] = useState<Page>('home');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const savedUserId = localStorage.getItem('currentUserId');
+      if (savedUserId) {
+        try {
+          const user = await getUserById(savedUserId);
+          if (user && user.id) {
+            setUserData(user as User & { id: string });
+            setIsLoggedIn(true);
+          }
+        } catch (error) {
+          console.error('Error loading user:', error);
+          localStorage.removeItem('currentUserId');
+        }
+      }
+      setIsLoading(false);
+    };
+
+    loadUser();
+  }, []);
 
   useEffect(() => {
     const smoothScroll = (e: MouseEvent) => {
@@ -55,40 +77,70 @@ function App() {
     }
   };
 
-  const handleRegistration = (data: { name: string; age: number; gender: string }) => {
-    const newUser: User & { id: string } = {
-      id: `user-${Date.now()}`,
-      name: data.name,
-      age: data.age,
-      gender: data.gender,
-      stars: 0,
-      level: 'Bronce',
-      visible_on_map: false,
-      created_at: new Date().toISOString()
-    };
-    setUserData(newUser);
-    setIsLoggedIn(true);
+  const handleRegistration = async (data: { name: string; age: number; gender: string }) => {
+    try {
+      const newUser = await createUser({
+        name: data.name,
+        age: data.age,
+        gender: data.gender,
+        stars: 0,
+        level: 'Bronce',
+        visible_on_map: false
+      });
+
+      if (newUser && newUser.id) {
+        setUserData(newUser as User & { id: string });
+        setIsLoggedIn(true);
+        localStorage.setItem('currentUserId', newUser.id);
+        setCurrentPage('profile');
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      alert('Error al crear el usuario. Por favor, intenta de nuevo.');
+    }
   };
 
-  const handleAddStar = () => {
-    if (!userData) return;
+  const handleAddStar = async () => {
+    if (!userData || !userData.id) return;
     const newStars = userData.stars + 1;
     let newLevel = 'Bronce';
     if (newStars >= 31) newLevel = 'Oro';
     else if (newStars >= 11) newLevel = 'Plata';
-    setUserData({ ...userData, stars: newStars, level: newLevel });
-  };
 
-  const handlePhotoUpload = (file: File) => {
-    const photoUrl = URL.createObjectURL(file);
-    if (userData) {
-      setUserData({ ...userData, profile_photo_url: photoUrl });
+    try {
+      const updatedUser = await updateUser(userData.id, { stars: newStars, level: newLevel });
+      if (updatedUser) {
+        setUserData(updatedUser as User & { id: string });
+      }
+    } catch (error) {
+      console.error('Error updating stars:', error);
     }
   };
 
-  const handleBioUpdate = (bio: string) => {
-    if (userData) {
-      setUserData({ ...userData, bio });
+  const handlePhotoUpload = async (file: File) => {
+    if (!userData || !userData.id) return;
+    const photoUrl = URL.createObjectURL(file);
+
+    try {
+      const updatedUser = await updateUser(userData.id, { profile_photo_url: photoUrl });
+      if (updatedUser) {
+        setUserData(updatedUser as User & { id: string });
+      }
+    } catch (error) {
+      console.error('Error updating photo:', error);
+    }
+  };
+
+  const handleBioUpdate = async (bio: string) => {
+    if (!userData || !userData.id) return;
+
+    try {
+      const updatedUser = await updateUser(userData.id, { bio });
+      if (updatedUser) {
+        setUserData(updatedUser as User & { id: string });
+      }
+    } catch (error) {
+      console.error('Error updating bio:', error);
     }
   };
 
@@ -221,6 +273,17 @@ function App() {
         );
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#C8102E]"></div>
+          <p className="mt-4 text-[#666666]">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
