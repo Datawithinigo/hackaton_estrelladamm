@@ -230,7 +230,15 @@ export default function Map({ users, currentUser, onMessageUser, onSendBeer }: M
           
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
-              <div className="bg-[#F5F5F5] rounded-3xl overflow-hidden shadow-xl h-[500px] relative">
+              <div 
+                className="bg-[#F5F5F5] rounded-3xl overflow-hidden shadow-xl h-[500px] relative"
+                style={{
+                  backgroundImage: 'url(/images/hackaton_maps.png)',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat'
+                }}
+              >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#C8102E]/5 to-[#D4AF37]/5">
                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                     <div className="relative">
