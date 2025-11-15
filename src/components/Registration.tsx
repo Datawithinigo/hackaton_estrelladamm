@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Check } from 'lucide-react';
 
 interface RegistrationProps {
-  onRegister: (data: { name: string }) => void;
+  onRegister: (data: { name: string; age: number; gender: string }) => void;
   isLoggedIn: boolean;
 }
 
@@ -19,7 +19,11 @@ export default function Registration({ onRegister, isLoggedIn }: RegistrationPro
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.ageConfirm && formData.termsAccept && parseInt(formData.age) >= 18) {
-      onRegister({ name: formData.name });
+      onRegister({
+        name: formData.name,
+        age: parseInt(formData.age),
+        gender: formData.gender
+      });
     }
   };
 
