@@ -97,6 +97,15 @@
     box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.2), 0 2px 8px rgba(200, 16, 46, 0.3);
   }
 
+  /* Text truncation utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
   @keyframes fadeIn {
     from {
       opacity: 0;

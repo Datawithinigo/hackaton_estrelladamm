@@ -3,6 +3,7 @@ import { MapPin, Star, Eye, EyeOff, Navigation, MessageCircle, Beer, Filter } fr
 import { User } from '../lib/supabase';
 import { useFilters } from '../contexts/FilterContext';
 import FilterStatus from './FilterStatus';
+import { isValidPhotoUrl, getInitialFromName } from '../lib/imageUtils';
 
 interface MapProps {
   users: (User & { id: string })[];
@@ -264,8 +265,27 @@ export default function Map({ users, currentUser, onMessageUser, onSendBeer }: M
                       <MapPin className={`w-8 h-8 ${getLevelColor(user.level)} fill-current drop-shadow-lg`} />
                       {selectedUser === user.id && (
                         <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white rounded-xl shadow-2xl p-4 w-56 animate-fade-in">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Star className={`w-5 h-5 ${getLevelColor(user.level)} fill-current`} />
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="relative">
+                              {isValidPhotoUrl(user.profile_photo_url) ? (
+                                <img
+                                  src={user.profile_photo_url}
+                                  alt={`Foto de ${user.name}`}
+                                  className="w-12 h-12 rounded-full object-cover border-2 border-[#C8102E]/20"
+                                />
+                              ) : (
+                                <div className={`w-12 h-12 rounded-full ${
+                                  user.level === 'Oro' ? 'bg-gradient-to-br from-[#D4AF37] to-[#FFD700]' :
+                                  user.level === 'Plata' ? 'bg-gradient-to-br from-[#C0C0C0] to-[#E5E5E5]' :
+                                  'bg-gradient-to-br from-[#CD7F32] to-[#D4A574]'
+                                } flex items-center justify-center border-2 border-[#C8102E]/20`}>
+                                  <span className="text-white font-bold text-lg">
+                                    {getInitialFromName(user.name)}
+                                  </span>
+                                </div>
+                              )}
+                              <Star className={`absolute -top-1 -right-1 w-4 h-4 ${getLevelColor(user.level)} fill-current`} />
+                            </div>
                             <div className="text-left">
                               <p className="font-bold text-[#333333]">{user.name}, {user.age}</p>
                               <p className="text-xs text-[#666666]">Nivel {user.level}</p>
@@ -334,20 +354,41 @@ export default function Map({ users, currentUser, onMessageUser, onSendBeer }: M
                       onClick={() => setSelectedUser(user.id)}
                       className="w-full text-left"
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <p className="font-bold text-[#333333]">{user.name}, {user.age}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            <Star className={`w-4 h-4 ${getLevelColor(user.level)} fill-current`} />
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className="relative flex-shrink-0">
+                          {isValidPhotoUrl(user.profile_photo_url) ? (
+                            <img
+                              src={user.profile_photo_url}
+                              alt={`Foto de ${user.name}`}
+                              className="w-12 h-12 rounded-full object-cover border-2 border-[#C8102E]/20"
+                            />
+                          ) : (
+                            <div className={`w-12 h-12 rounded-full ${
+                              user.level === 'Oro' ? 'bg-gradient-to-br from-[#D4AF37] to-[#FFD700]' :
+                              user.level === 'Plata' ? 'bg-gradient-to-br from-[#C0C0C0] to-[#E5E5E5]' :
+                              'bg-gradient-to-br from-[#CD7F32] to-[#D4A574]'
+                            } flex items-center justify-center border-2 border-[#C8102E]/20`}>
+                              <span className="text-white font-bold text-sm">
+                                {getInitialFromName(user.name)}
+                              </span>
+                            </div>
+                          )}
+                          <Star className={`absolute -top-1 -right-1 w-4 h-4 ${getLevelColor(user.level)} fill-current`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="font-bold text-[#333333] truncate">{user.name}, {user.age}</p>
+                            <MapPin className={`w-5 h-5 ${getLevelColor(user.level)} flex-shrink-0`} />
+                          </div>
+                          <div className="flex items-center gap-1 mb-1">
                             <span className="text-sm text-[#666666]">Nivel {user.level}</span>
                           </div>
+                          {user.bio && (
+                            <p className="text-sm text-[#999999] mb-2 line-clamp-2">"{user.bio}"</p>
+                          )}
+                          <p className="text-xs text-[#D4AF37] font-medium">a {user.distance}</p>
                         </div>
-                        <MapPin className={`w-5 h-5 ${getLevelColor(user.level)}`} />
                       </div>
-                      {user.bio && (
-                        <p className="text-sm text-[#999999] mb-2">"{user.bio}"</p>
-                      )}
-                      <p className="text-xs text-[#D4AF37] font-medium">a {user.distance}</p>
                     </button>
                     {currentUser && (
                       <div className="mt-3 space-y-2">
