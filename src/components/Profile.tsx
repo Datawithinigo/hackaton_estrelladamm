@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Camera, Star, Edit2, Save, X, Gift, Plus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { isValidPhotoUrl, getInitialFromName } from '../lib/imageUtils';
 
 interface ProfileProps {
   userData: {
@@ -136,16 +137,21 @@ export default function Profile({ userData, onPhotoUpload, onBioUpdate, isEditab
         <div className="flex flex-col md:flex-row gap-6 -mt-16">
           <div className="relative">
             <div className="w-32 h-32 rounded-2xl bg-[#F5F5F5] overflow-hidden border-4 border-white shadow-xl">
-              {userData.profile_photo_url ? (
+              {isValidPhotoUrl(userData.profile_photo_url) ? (
                 <img
                   src={userData.profile_photo_url}
                   alt={userData.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Hide the image and show the placeholder if there's an error
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#C8102E] to-[#D4AF37]">
                   <span className="text-4xl text-white font-bold">
-                    {(userData.name || 'U').charAt(0).toUpperCase()}
+                    {getInitialFromName(userData.name)}
                   </span>
                 </div>
               )}

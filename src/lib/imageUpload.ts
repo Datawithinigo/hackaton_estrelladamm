@@ -1,113 +1,95 @@
-import { supabase } from './supabase';
+/**
+ * Converts a file to base64 data URL
+ * @param file The image file to convert
+ * @returns Promise that resolves to base64 data URL
+ */
+export const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      } else {
+        reject(new Error('Error al convertir la imagen a base64'));
+      }
+    };
+    reader.onerror = () => reject(new Error('Error al leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+};
 
 /**
- * Uploads a profile photo to Supabase Storage
+ * Uploads a profile photo as base64 to the database
  * @param file The image file to upload
- * @param userId The user's ID for file naming
- * @returns The public URL of the uploaded image
+ * @returns The base64 data URL string
  */
-export const uploadProfilePhoto = async (file: File, userId: string): Promise<string> => {
+export const uploadProfilePhoto = async (file: File): Promise<string> => {
   try {
     // Validate file type
     if (!file.type.startsWith('image/')) {
       throw new Error('El archivo debe ser una imagen');
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Validate file size (max 2MB for base64 storage)
+    const maxSize = 2 * 1024 * 1024; // 2MB (smaller limit for base64)
     if (file.size > maxSize) {
-      throw new Error('La imagen no puede ser mayor a 5MB');
+      throw new Error('La imagen no puede ser mayor a 2MB');
     }
 
-    // Check if bucket exists and create it if needed
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const bucketExists = buckets?.some(bucket => bucket.name === 'profile-photos');
-    
-    if (!bucketExists) {
-      console.log('📁 Creating profile-photos bucket...');
-      const { error: bucketError } = await supabase.storage.createBucket('profile-photos', {
-        public: true,
-        fileSizeLimit: 5242880, // 5MB
-        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-      });
-      
-      if (bucketError) {
-        console.error('❌ Error creating bucket:', bucketError);
-        throw new Error(`Error al crear el bucket: ${bucketError.message}`);
-      }
-      console.log('✅ Profile-photos bucket created successfully');
-    }
+    // Compress the image before converting to base64
+    const compressedFile = await compressImage(file, 400, 0.7); // Smaller size and lower quality for base64
 
-    // Create unique filename
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    const fileName = `${userId}-${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
+    // Convert to base64
+    const base64String = await fileToBase64(compressedFile);
 
-    // Upload file to Supabase Storage
-    const { error: uploadError } = await supabase.storage
-      .from('profile-photos')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: true // Replace if exists
-      });
-
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
-      throw new Error(`Error al subir la imagen: ${uploadError.message}`);
-    }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('profile-photos')
-      .getPublicUrl(filePath);
-
-    if (!urlData?.publicUrl) {
-      throw new Error('Error al obtener la URL de la imagen');
-    }
-
-    console.log('✅ Photo uploaded successfully:', urlData.publicUrl);
-    return urlData.publicUrl;
+    console.log('✅ Photo converted to base64 successfully');
+    return base64String;
 
   } catch (error) {
-    console.error('❌ Error uploading profile photo:', error);
+    console.error('❌ Error converting profile photo to base64:', error);
     throw error;
   }
 };
 
 /**
- * Deletes a profile photo from Supabase Storage
- * @param photoUrl The URL of the photo to delete
+ * Deletes/clears a profile photo (for base64 storage, this just returns)
+ * @param _photoUrl The base64 data URL (no actual deletion needed)
  */
-export const deleteProfilePhoto = async (photoUrl: string): Promise<void> => {
+export const deleteProfilePhoto = async (_photoUrl: string): Promise<void> => {
   try {
-    if (!photoUrl.includes('profile-photos/')) {
-      // Not a storage URL, nothing to delete
-      return;
-    }
-
-    // Extract file path from URL
-    const urlParts = photoUrl.split('/storage/v1/object/public/profile-photos/');
-    if (urlParts.length !== 2) {
-      console.warn('Could not parse photo URL for deletion:', photoUrl);
-      return;
-    }
-
-    const filePath = urlParts[1];
-
-    const { error } = await supabase.storage
-      .from('profile-photos')
-      .remove([filePath]);
-
-    if (error) {
-      console.error('Error deleting photo:', error);
-      // Don't throw here, as this is not critical
-    } else {
-      console.log('✅ Photo deleted successfully:', filePath);
-    }
+    // For base64 storage, no actual deletion is needed from external storage
+    // The data is stored directly in the database
+    console.log('✅ Photo reference cleared (base64 storage)');
+    return;
   } catch (error) {
-    console.error('❌ Error deleting profile photo:', error);
+    console.error('❌ Error clearing profile photo reference:', error);
     // Don't throw here, as this is not critical for user experience
   }
+};
+
+/**
+ * Validates if a string is a valid base64 data URL for images
+ * @param dataUrl The data URL string to validate
+ * @returns boolean indicating if it's a valid image data URL
+ */
+export const isValidImageDataUrl = (dataUrl: string): boolean => {
+  if (!dataUrl || typeof dataUrl !== 'string') {
+    return false;
+  }
+  
+  // Check if it starts with data: and contains image type
+  const dataUrlPattern = /^data:image\/(jpeg|jpg|png|gif|webp);base64,/;
+  return dataUrlPattern.test(dataUrl);
+};
+
+/**
+ * Gets the file extension from a base64 data URL
+ * @param dataUrl The base64 data URL
+ * @returns The file extension (e.g., 'jpeg', 'png')
+ */
+export const getImageTypeFromDataUrl = (dataUrl: string): string => {
+  const match = dataUrl.match(/^data:image\/([^;]+);base64,/);
+  return match ? match[1] : 'jpeg';
 };
 
 /**

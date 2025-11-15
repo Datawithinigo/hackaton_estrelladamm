@@ -14,7 +14,7 @@ import ChatWithLimits from './components/ChatWithLimits';
 import ConversationsWithLimits from './components/ConversationsWithLimits';
 import FilterStatus from './components/FilterStatus';
 import { User, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserByAuthId, signInWithGoogle, authenticateWithEmail, signOut, getCurrentAuthUser, supabase } from './lib/supabase';
-import { uploadProfilePhoto, compressImage, deleteProfilePhoto } from './lib/imageUpload';
+import { uploadProfilePhoto, deleteProfilePhoto } from './lib/imageUpload';
 import { FilterProvider } from './contexts/FilterContext';
 
 type Page = 'home' | 'stars' | 'map' | 'faq' | 'messages' | 'auth' | 'onboarding';
@@ -264,23 +264,19 @@ function App() {
     try {
       console.log('📸 Starting photo upload for user:', userData.id);
       
-      // Compress image before upload
-      const compressedFile = await compressImage(file, 800, 0.8);
-      console.log('📸 Image compressed. Original size:', file.size, 'Compressed size:', compressedFile.size);
+      // Convert to base64 (compression is handled inside uploadProfilePhoto)
+      const base64DataUrl = await uploadProfilePhoto(file);
+      console.log('📸 Image converted to base64');
       
-      // Delete old photo if it exists and is a storage URL
-      if (userData.profile_photo_url && userData.profile_photo_url.includes('profile-photos/')) {
-        console.log('📸 Deleting old profile photo...');
+      // Clear old photo reference (no actual deletion needed for base64)
+      if (userData.profile_photo_url) {
+        console.log('📸 Clearing old profile photo reference...');
         await deleteProfilePhoto(userData.profile_photo_url);
       }
       
-      // Upload new photo to Supabase Storage
-      console.log('📸 Uploading new photo...');
-      const photoUrl = await uploadProfilePhoto(compressedFile, userData.id);
-      
-      // Update user record in database
-      console.log('📸 Updating user record with new photo URL...');
-      const updatedUser = await updateUser(userData.id, { profile_photo_url: photoUrl });
+      // Update user record in database with base64 data
+      console.log('📸 Updating user record with new photo data...');
+      const updatedUser = await updateUser(userData.id, { profile_photo_url: base64DataUrl });
       
       if (updatedUser) {
         setUserData(updatedUser as User & { id: string });

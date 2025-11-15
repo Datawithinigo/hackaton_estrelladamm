@@ -1,6 +1,7 @@
 import { User } from '../lib/supabase';
 import { Star, MessageCircle } from 'lucide-react';
 import { useFilters } from '../contexts/FilterContext';
+import { isValidPhotoUrl, getInitialFromName } from '../lib/imageUtils';
 
 interface UsersListProps {
   users: (User & { id: string })[];
@@ -49,15 +50,17 @@ export default function UsersList({ users, currentUserId, onSelectUser, isLoadin
             onClick={() => onSelectUser(user)}
             className="w-full bg-[#F5F5F5] hover:bg-[#FFF5F5] rounded-xl p-4 transition-all text-left flex gap-4 items-start hover:shadow-lg hover:-translate-y-1"
           >
-            {user.profile_photo_url ? (
+            {isValidPhotoUrl(user.profile_photo_url) ? (
               <img
                 src={user.profile_photo_url}
                 alt={user.name}
-                className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                className="w-16 h-16 rounded-xl object-cover"
               />
             ) : (
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#C8102E] to-[#D4AF37] flex items-center justify-center text-white font-bold flex-shrink-0">
-                {user.name?.charAt(0).toUpperCase() || '?'}
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-[#C8102E] to-[#D4AF37] flex items-center justify-center">
+                <span className="text-white font-bold text-lg">
+                  {getInitialFromName(user.name)}
+                </span>
               </div>
             )}
 

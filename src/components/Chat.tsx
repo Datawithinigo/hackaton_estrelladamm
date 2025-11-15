@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, ArrowLeft, Image } from 'lucide-react';
 import { User, Message } from '../lib/supabase';
+import { isValidPhotoUrl, getInitialFromName } from '../lib/imageUtils';
 
 interface ChatProps {
   currentUser: User & { id: string };
@@ -78,7 +79,7 @@ export default function Chat({ currentUser, otherUser, messages, onSendMessage, 
               <h3 className="text-white font-bold truncate">{otherUser.name}</h3>
               <p className="text-white/80 text-sm">Nivel {otherUser.level}</p>
             </div>
-            {otherUser.profile_photo_url ? (
+            {isValidPhotoUrl(otherUser.profile_photo_url) ? (
               <img
                 src={otherUser.profile_photo_url}
                 alt={otherUser.name}
@@ -86,7 +87,7 @@ export default function Chat({ currentUser, otherUser, messages, onSendMessage, 
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold">
-                {otherUser.name.charAt(0).toUpperCase()}
+                {getInitialFromName(otherUser.name)}
               </div>
             )}
           </div>
