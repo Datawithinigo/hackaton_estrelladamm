@@ -1,5 +1,5 @@
 /*
-  # Create users and messages tables for Estrella Connect
+  # Create users and messages tables for Single Damm
 
   1. New Tables
     - `users`

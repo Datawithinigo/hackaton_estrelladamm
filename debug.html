@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Supabase</title>
+</head>
+<body>
+    <h1>Supabase Debug</h1>
+    <div id="status">Testing...</div>
+    <div id="logs"></div>
+
+    <script type="module">
+        const logs = document.getElementById('logs');
+        const status = document.getElementById('status');
+        
+        function log(message) {
+            console.log(message);
+            logs.innerHTML += '<p>' + message + '</p>';
+        }
+
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+        
+        const supabaseUrl = 'https://wjqwvnsnliacghigteyv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqcXd2bnNubGlhY2doaWd0ZXl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyMjI2NTYsImV4cCI6MjA3ODc5ODY1Nn0.Z0SpW4VaB4RbFm7WgsRI0ss-uMWX0s0qVekFZjX--Ss';
+        
+        log('Creating Supabase client...');
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        log('Testing database connection...');
+        
+        try {
+            const { data, error } = await supabase
+                .from('users')
+                .select('count')
+                .limit(1);
+                
+            if (error) {
+                log('❌ Error: ' + error.message);
+                status.innerHTML = '❌ Database connection failed';
+            } else {
+                log('✅ Database connection successful!');
+                status.innerHTML = '✅ Database working!';
+                
+                // Test auth
+                log('Testing auth...');
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                log('Current user: ' + (user ? user.email : 'None'));
+                if (authError) {
+                    log('Auth error: ' + authError.message);
+                }
+            }
+        } catch (err) {
+            log('❌ Unexpected error: ' + err.message);
+            status.innerHTML = '❌ Connection failed';
+        }
+    </script>
+</body>
+</html>

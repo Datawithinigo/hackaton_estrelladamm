@@ -13,7 +13,7 @@ import Profile from './components/Profile';
 import UsersList from './components/UsersList';
 import ChatWithLimits from './components/ChatWithLimits';
 import ConversationsWithLimits from './components/ConversationsWithLimits';
-import { User, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserById, getUserByEmail, getUserByAuthId, signInWithGoogle, authenticateWithEmail, signOut, getCurrentAuthUser, supabase } from './lib/supabase';
+import { User, DisplayUser, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserById, getUserByAuthId, signInWithGoogle, authenticateWithEmail, signOut, getCurrentAuthUser, supabase } from './lib/supabase';
 
 type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages' | 'auth' | 'onboarding';
 
@@ -29,83 +29,12 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const authUser = await getCurrentAuthUser();
-
-        if (authUser) {
-          const user = await getUserByAuthId(authUser.id);
-
-          if (user && user.id) {
-            if (!user.name || !user.age || !user.gender) {
-              setPendingAuthEmail(authUser.email || '');
-              setCurrentPage('onboarding');
-              setIsLoading(false);
-              return;
-            }
-
-            setUserData(user as User & { id: string });
-            setIsLoggedIn(true);
-            localStorage.setItem('currentUserId', user.id);
-          } else {
-            const newUser = await createUser({
-              auth_user_id: authUser.id,
-              email: authUser.email || '',
-              stars: 0,
-              level: 'Bronce',
-              visible_on_map: false
-            });
-
-            if (newUser && newUser.id) {
-              setPendingAuthEmail(authUser.email || '');
-              setCurrentPage('onboarding');
-              setIsLoading(false);
-              return;
-            }
-          }
-        } else {
-          const savedUserId = localStorage.getItem('currentUserId');
-          if (savedUserId) {
-            const user = await getUserById(savedUserId);
-            if (user && user.id) {
-              setUserData(user as User & { id: string });
-              setIsLoggedIn(true);
-            } else {
-              localStorage.removeItem('currentUserId');
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error loading user:', error);
-      }
-
+    console.log('🎯 App starting - skipping auth check for now');
+    // Set a very short timeout and skip auth for debugging
+    setTimeout(() => {
       setIsLoading(false);
-    };
-
-    loadUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const user = await getUserByAuthId(session.user.id);
-        if (user && user.id) {
-          if (!user.name || !user.age || !user.gender) {
-            setPendingAuthEmail(session.user.email || '');
-            setCurrentPage('onboarding');
-            setIsLoading(false);
-          } else {
-            setUserData(user as User & { id: string });
-            setIsLoggedIn(true);
-            localStorage.setItem('currentUserId', user.id);
-            setCurrentPage('stars');
-            setIsLoading(false);
-          }
-        }
-      }
-    });
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
+      setCurrentPage('home');
+    }, 100);
   }, []);
 
   useEffect(() => {
@@ -181,28 +110,38 @@ function App() {
 
   const handleAuth = async (email: string, password: string) => {
     try {
+      console.log('🔐 Starting authentication for:', email);
       const result = await authenticateWithEmail(email, password);
+      console.log('🔐 Authentication result:', result);
 
       if (result.type === 'signup' && result.needsOnboarding) {
+        console.log('🔐 New user needs onboarding');
         setPendingAuthEmail(email);
         setCurrentPage('onboarding');
-      } else {
+      } else if (result.type === 'signin') {
+        console.log('🔐 User signed in, checking profile...');
         const user = await getUserByAuthId(result.user.id);
         if (user && user.id) {
           if (!user.name || !user.age || !user.gender) {
+            console.log('🔐 Existing user needs onboarding');
             setPendingAuthEmail(email);
             setCurrentPage('onboarding');
           } else {
+            console.log('🔐 User complete, setting as logged in');
             setUserData(user as User & { id: string });
             setIsLoggedIn(true);
             localStorage.setItem('currentUserId', user.id);
             setCurrentPage('stars');
           }
+        } else {
+          console.log('🔐 No user found in DB, needs onboarding');
+          setPendingAuthEmail(email);
+          setCurrentPage('onboarding');
         }
       }
     } catch (error: any) {
-      console.error('Error during authentication:', error);
-      alert('Error al autenticar. Verifica tus credenciales e intenta de nuevo.');
+      console.error('❌ Error during authentication:', error);
+      alert('Error al autenticar. Verifica tus credenciales e intenta de nuevo. Details: ' + error.message);
     }
   };
 
@@ -263,7 +202,8 @@ function App() {
 
   const handleAddStar = async () => {
     if (!userData || !userData.id) return;
-    const newStars = userData.stars + 1;
+    const currentStars = userData.stars || 0;
+    const newStars = currentStars + 1;
     let newLevel = 'Bronce';
     if (newStars >= 31) newLevel = 'Oro';
     else if (newStars >= 11) newLevel = 'Plata';

@@ -2,14 +2,17 @@ import { Star, QrCode, TrendingUp } from 'lucide-react';
 
 interface DashboardProps {
   userData: {
-    name: string;
-    stars: number;
-    level: string;
+    name?: string;
+    stars?: number;
+    level?: string;
   };
   onAddStar: () => void;
 }
 
 export default function Dashboard({ userData, onAddStar }: DashboardProps) {
+  const name = userData.name || 'Usuario';
+  const stars = userData.stars || 0;
+  const level = userData.level || 'Bronce';
   const getLevelColor = (level: string) => {
     switch (level) {
       case 'Oro':
@@ -22,14 +25,14 @@ export default function Dashboard({ userData, onAddStar }: DashboardProps) {
   };
 
   const getNextLevel = () => {
-    if (userData.stars < 11) return { name: 'Plata', starsNeeded: 11 - userData.stars };
-    if (userData.stars < 31) return { name: 'Oro', starsNeeded: 31 - userData.stars };
+    if (stars < 11) return { name: 'Plata', starsNeeded: 11 - stars };
+    if (stars < 31) return { name: 'Oro', starsNeeded: 31 - stars };
     return { name: 'Máximo', starsNeeded: 0 };
   };
 
   const getProgress = () => {
-    if (userData.stars < 11) return (userData.stars / 11) * 100;
-    if (userData.stars < 31) return ((userData.stars - 10) / 21) * 100;
+    if (stars < 11) return (stars / 11) * 100;
+    if (stars < 31) return ((stars - 10) / 21) * 100;
     return 100;
   };
 
@@ -40,16 +43,16 @@ export default function Dashboard({ userData, onAddStar }: DashboardProps) {
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
-            <div className={`bg-gradient-to-r ${getLevelColor(userData.level)} p-8 text-white`}>
+            <div className={`bg-gradient-to-r ${getLevelColor(level)} p-8 text-white`}>
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <p className="text-lg opacity-90">Hola, cazador</p>
-                  <h2 className="text-4xl font-bold">{userData.name}</h2>
+                  <h2 className="text-4xl font-bold">{name}</h2>
                 </div>
                 <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-6 py-3">
                   <div className="flex items-center gap-2">
                     <Star className="w-6 h-6 fill-white" />
-                    <span className="text-2xl font-bold">{userData.level}</span>
+                    <span className="text-2xl font-bold">{level}</span>
                   </div>
                 </div>
               </div>
@@ -58,7 +61,7 @@ export default function Dashboard({ userData, onAddStar }: DashboardProps) {
                 <div className="flex items-center justify-center gap-4 mb-4">
                   <Star className="w-12 h-12 fill-white animate-pulse" />
                   <div className="text-center">
-                    <p className="text-6xl font-bold">{userData.stars}</p>
+                    <p className="text-6xl font-bold">{stars}</p>
                     <p className="text-lg opacity-90">Estrellas</p>
                   </div>
                   <Star className="w-12 h-12 fill-white animate-pulse" />
@@ -104,7 +107,7 @@ export default function Dashboard({ userData, onAddStar }: DashboardProps) {
               <div className="mt-8 grid grid-cols-3 gap-4 text-center">
                 <div className="bg-[#F5F5F5] rounded-xl p-4">
                   <p className="text-3xl font-bold text-[#C8102E]">
-                    {userData.level === 'Oro' ? '∞' : userData.level === 'Plata' ? '5' : '1'}
+                    {level === 'Oro' ? '∞' : level === 'Plata' ? '5' : '1'}
                   </p>
                   <p className="text-sm text-[#666666]">Mensajes/día</p>
                 </div>

@@ -1,9 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://wjqwvnsnliacghigteyv.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqcXd2bnNubGlhY2doaWd0ZXl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyMjI2NTYsImV4cCI6MjA3ODc5ODY1Nn0.Z0SpW4VaB4RbFm7WgsRI0ss-uMWX0s0qVekFZjX--Ss';
 
+console.log('🔧 Supabase configuration loaded');
+console.log('URL:', supabaseUrl);
+console.log('Key length:', supabaseAnonKey.length);
+
+// Create supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Demo mode flag
+export const isDemoMode = false;
 
 export interface User {
   id?: string;
@@ -15,6 +23,23 @@ export interface User {
   orientation?: string;
   stars?: number;
   level?: string;
+  profile_photo_url?: string;
+  bio?: string;
+  visible_on_map?: boolean;
+  created_at?: string;
+}
+
+// Type for user data with required fields for display
+export interface DisplayUser {
+  id: string;
+  name: string;
+  stars: number;
+  level: string;
+  age: number;
+  gender: string;
+  email: string;
+  auth_user_id?: string;
+  orientation?: string;
   profile_photo_url?: string;
   bio?: string;
   visible_on_map?: boolean;
@@ -140,9 +165,19 @@ export const signOut = async () => {
 };
 
 export const getCurrentAuthUser = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error) throw error;
-  return user;
+  console.log('🔍 getCurrentAuthUser called');
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    console.log('🔍 getCurrentAuthUser result:', { user, error });
+    if (error) {
+      console.log('🔍 getCurrentAuthUser error:', error);
+      throw error;
+    }
+    return user;
+  } catch (error) {
+    console.error('🔍 getCurrentAuthUser catch error:', error);
+    return null;
+  }
 };
 
 export const signUpWithEmail = async (email: string, password: string, userData: { name: string; age: number; gender: string; orientation?: string }) => {

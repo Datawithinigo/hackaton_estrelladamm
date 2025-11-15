@@ -9,7 +9,7 @@ export default function Footer() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Star className="w-6 h-6 text-[#C8102E] fill-[#C8102E]" />
-                <span className="text-lg font-bold text-[#C8102E]">Estrella Connect</span>
+                <span className="text-lg font-bold text-[#C8102E]">Single Damm</span>
               </div>
               <p className="text-[#666666] text-sm">
                 La forma más divertida de conectar con otros amantes de la buena cerveza
@@ -55,7 +55,7 @@ export default function Footer() {
             </div>
 
             <div className="text-center text-sm text-[#999999]">
-              <p>© 2024 Estrella Connect. Campaña promocional.</p>
+              <p>© 2024 Single Damm. Campaña promocional.</p>
               <p className="mt-2">
                 Esta es una experiencia para mayores de edad. Consumo responsable siempre.
               </p>
