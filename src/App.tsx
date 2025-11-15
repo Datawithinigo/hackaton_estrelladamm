@@ -59,6 +59,8 @@ function App() {
             if (newUser && newUser.id) {
               setPendingAuthEmail(authUser.email || '');
               setCurrentPage('onboarding');
+              setIsLoading(false);
+              return;
             }
           }
         } else {
@@ -89,11 +91,13 @@ function App() {
           if (!user.name || !user.age || !user.gender) {
             setPendingAuthEmail(session.user.email || '');
             setCurrentPage('onboarding');
+            setIsLoading(false);
           } else {
             setUserData(user as User & { id: string });
             setIsLoggedIn(true);
             localStorage.setItem('currentUserId', user.id);
             setCurrentPage('stars');
+            setIsLoading(false);
           }
         }
       }
