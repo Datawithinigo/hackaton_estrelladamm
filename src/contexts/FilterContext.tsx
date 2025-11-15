@@ -69,6 +69,9 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({ children }) => {
       // Exclude current user
       if (currentUserId && user.id === currentUserId) return false;
       
+      // Only show users who want to be visible on map
+      if (!user.visible_on_map) return false;
+      
       // Apply age filter
       if (user.age !== undefined && (user.age < filters.ageRange[0] || user.age > filters.ageRange[1])) return false;
       

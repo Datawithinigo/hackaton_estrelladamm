@@ -1,4 +1,9 @@
 import { supabase } from '../lib/supabase';
+import { 
+  getOrCreateConversationJS, 
+  getDailyMessageCountJS, 
+  incrementDailyMessagesJS 
+} from '../lib/conversationUtils';
 
 const MESSAGE_LIMITS: Record<string, number> = {
   'Bronce': 1,
@@ -43,18 +48,21 @@ export const sendMessageWithLimits = async ({
     // Check current message count with better error handling
     let messagesSent = 0;
     try {
+      // Try SQL function first
       const { data: currentCount, error: countError } = await supabase.rpc('get_daily_message_count', {
         p_user_id: senderId
       });
 
       if (countError) {
-        console.error('❌ Error getting message count:', countError);
-        // Don't throw here, try to continue with count = 0
+        console.log('⚠️ SQL function not available, using JS alternative:', countError.message);
+        // Use JS alternative
+        messagesSent = await getDailyMessageCountJS(senderId);
       } else {
         messagesSent = currentCount || 0;
       }
     } catch (countErr) {
-      console.warn('⚠️ Message count check failed, continuing with 0:', countErr);
+      console.warn('⚠️ Using JS fallback for message count:', countErr);
+      messagesSent = await getDailyMessageCountJS(senderId);
     }
 
     console.log('📊 Current messages sent today:', messagesSent);
@@ -71,28 +79,35 @@ export const sendMessageWithLimits = async ({
     // Get or create conversation with better error handling
     let conversationId: string;
     try {
+      // Try SQL function first
       const { data: convId, error: convError } = await supabase.rpc('get_or_create_conversation', {
         p_user1_id: senderId,
         p_user2_id: recipientId
       });
 
       if (convError) {
-        console.error('❌ Conversation creation error:', convError);
-        throw new Error('Error al crear la conversación: ' + convError.message);
+        console.log('⚠️ SQL function not available, using JS alternative:', convError.message);
+        // Use JS alternative
+        conversationId = await getOrCreateConversationJS(senderId, recipientId);
+      } else {
+        if (!convId) {
+          throw new Error('No se pudo crear la conversación');
+        }
+        conversationId = convId;
       }
-
-      if (!convId) {
-        throw new Error('No se pudo crear la conversación');
-      }
-
-      conversationId = convId;
       console.log('💬 Conversation ID:', conversationId);
     } catch (convErr) {
-      console.error('❌ Failed to get/create conversation:', convErr);
-      return {
-        success: false,
-        error: 'Error al crear la conversación. Por favor, intenta de nuevo.'
-      };
+      console.log('⚠️ Using JS fallback for conversation creation:', convErr);
+      try {
+        conversationId = await getOrCreateConversationJS(senderId, recipientId);
+        console.log('💬 Conversation ID (JS):', conversationId);
+      } catch (jsFallbackErr) {
+        console.error('❌ Both SQL and JS conversation creation failed:', jsFallbackErr);
+        return {
+          success: false,
+          error: 'Error al crear la conversación. Por favor, intenta de nuevo.'
+        };
+      }
     }
 
     // Send the message
@@ -125,17 +140,27 @@ export const sendMessageWithLimits = async ({
 
     // Increment message count (don't fail the whole operation if this fails)
     try {
+      // Try SQL function first
       const { error: incrementError } = await supabase.rpc('increment_daily_messages', {
         p_user_id: senderId
       });
 
       if (incrementError) {
-        console.warn('⚠️ Failed to increment message count:', incrementError);
+        console.log('⚠️ SQL function not available, using JS alternative:', incrementError.message);
+        // Use JS alternative
+        await incrementDailyMessagesJS(senderId);
+        console.log('📊 Message count incremented successfully (JS)');
       } else {
         console.log('📊 Message count incremented successfully');
       }
     } catch (incErr) {
-      console.warn('⚠️ Message count increment error (non-critical):', incErr);
+      console.log('⚠️ Using JS fallback for incrementing message count:', incErr);
+      try {
+        await incrementDailyMessagesJS(senderId);
+        console.log('📊 Message count incremented successfully (JS fallback)');
+      } catch (jsFallbackErr) {
+        console.warn('⚠️ Both SQL and JS message count increment failed (non-critical):', jsFallbackErr);
+      }
     }
 
     // Update conversation timestamp (don't fail if this fails)
@@ -174,23 +199,30 @@ export const getOrCreateConversation = async (
       return null;
     }
     
-    const { data, error } = await supabase.rpc('get_or_create_conversation', {
-      p_user1_id: user1Id,
-      p_user2_id: user2Id
-    });
+    // Try SQL function first
+    try {
+      const { data, error } = await supabase.rpc('get_or_create_conversation', {
+        p_user1_id: user1Id,
+        p_user2_id: user2Id
+      });
 
-    if (error) {
-      console.error('❌ Conversation creation error:', error);
-      return null;
+      if (error) {
+        console.log('⚠️ SQL function not available, using JS alternative:', error.message);
+        // Use JS alternative
+        return await getOrCreateConversationJS(user1Id, user2Id);
+      }
+      
+      if (!data) {
+        console.error('❌ No conversation ID returned from SQL function');
+        return await getOrCreateConversationJS(user1Id, user2Id);
+      }
+      
+      console.log('✅ Conversation ready (SQL):', data);
+      return data;
+    } catch (sqlErr) {
+      console.log('⚠️ Using JS fallback for conversation:', sqlErr);
+      return await getOrCreateConversationJS(user1Id, user2Id);
     }
-    
-    if (!data) {
-      console.error('❌ No conversation ID returned');
-      return null;
-    }
-    
-    console.log('✅ Conversation ready:', data);
-    return data;
   } catch (error) {
     console.error('❌ Error creating conversation:', error);
     return null;

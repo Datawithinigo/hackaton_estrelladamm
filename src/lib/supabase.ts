@@ -221,7 +221,7 @@ export const signUpWithEmail = async (email: string, password: string, userData:
       orientation: userData.orientation,
       stars: 0,
       level: 'Bronce',
-      visible_on_map: false
+      visible_on_map: true  // by default show on map
     }])
     .select()
     .single();
@@ -297,7 +297,7 @@ export const authenticateWithEmail = async (email: string, password: string) => 
               email: signUpData.user.email,
               stars: 0,
               level: 'Bronce',
-              visible_on_map: false
+              visible_on_map: true
             }])
             .select()
             .single();

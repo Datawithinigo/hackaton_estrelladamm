@@ -150,7 +150,7 @@ function App() {
                 email: result.user.email || email,
                 stars: 0,
                 level: 'Bronce',
-                visible_on_map: false
+                visible_on_map: true
               });
             } catch (createError) {
               console.warn('🔐 User creation warning:', createError);
