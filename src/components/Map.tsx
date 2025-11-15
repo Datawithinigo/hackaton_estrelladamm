@@ -127,10 +127,10 @@ export default function Map({ users, currentUser, onMessageUser, onSendBeer }: M
                     </div>
                     
                     {/* Dual Range Slider */}
-                    <div className="relative px-2">
+                    <div className="relative">
                       <div className="relative h-2 bg-gray-200 rounded-lg">
                         <div 
-                          className="absolute h-2 bg-gradient-to-r from-[#C8102E] to-[#C8102E] rounded-lg"
+                          className="absolute h-2 bg-gradient-to-r from-[#C8102E] to-[#C8102E] rounded-lg pointer-events-none"
                           style={{
                             left: `${((ageRange[0] - 18) / (99 - 18)) * 100}%`,
                             width: `${((ageRange[1] - ageRange[0]) / (99 - 18)) * 100}%`
@@ -150,8 +150,8 @@ export default function Map({ users, currentUser, onMessageUser, onSendBeer }: M
                             setAgeRange([value, ageRange[1]]);
                           }
                         }}
-                        className="absolute top-0 w-full h-2 bg-transparent appearance-none cursor-pointer range-slider-thumb"
-                        style={{ zIndex: 1 }}
+                        className="absolute top-0 left-0 w-full h-2 bg-transparent appearance-none cursor-pointer range-slider-thumb pointer-events-auto"
+                        style={{ zIndex: ageRange[0] === ageRange[1] ? 2 : 1 }}
                       />
                       
                       {/* Max range input */}
@@ -166,7 +166,7 @@ export default function Map({ users, currentUser, onMessageUser, onSendBeer }: M
                             setAgeRange([ageRange[0], value]);
                           }
                         }}
-                        className="absolute top-0 w-full h-2 bg-transparent appearance-none cursor-pointer range-slider-thumb"
+                        className="absolute top-0 left-0 w-full h-2 bg-transparent appearance-none cursor-pointer range-slider-thumb pointer-events-auto"
                         style={{ zIndex: 2 }}
                       />
                     </div>
