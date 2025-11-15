@@ -10,8 +10,8 @@ import FAQ from './components/FAQ';
 import Footer from './components/Footer';
 import Profile from './components/Profile';
 import UsersList from './components/UsersList';
-import Chat from './components/Chat';
-import Conversations from './components/Conversations';
+import ChatWithLimits from './components/ChatWithLimits';
+import ConversationsWithLimits from './components/ConversationsWithLimits';
 import { User, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserById } from './lib/supabase';
 
 type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages';
@@ -209,10 +209,8 @@ function App() {
           <div className="min-h-screen bg-white">
             <Header isLoggedIn={isLoggedIn} currentPage={currentPage} onNavigate={setCurrentPage} />
             {userData && (
-              <Conversations
+              <ConversationsWithLimits
                 currentUser={userData}
-                users={allUsers}
-                messages={allMessages}
                 onSelectUser={handleSelectUser}
               />
             )}
@@ -340,11 +338,9 @@ function App() {
     <>
       {renderPage()}
       {selectedUser && userData && (
-        <Chat
+        <ChatWithLimits
           currentUser={userData}
           otherUser={selectedUser}
-          messages={messages}
-          onSendMessage={handleSendMessage}
           onBack={() => setSelectedUser(null)}
         />
       )}
