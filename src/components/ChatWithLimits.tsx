@@ -19,7 +19,7 @@ export default function ChatWithLimits({ currentUser, otherUser, onBack }: ChatW
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { messages, loading } = useMessages(conversationId, currentUser.id);
-  const { messagesRemaining, canSend, dailyLimit } = useMessageLimits(currentUser.id, currentUser.level);
+  const { messagesRemaining, canSend, dailyLimit, messagesSent, bonusMessages, levelBonus, totalAvailable } = useMessageLimits(currentUser.id, currentUser.level || 'Bronce');
 
   useEffect(() => {
     const initConversation = async () => {
@@ -51,14 +51,15 @@ export default function ChatWithLimits({ currentUser, otherUser, onBack }: ChatW
         senderId: currentUser.id,
         recipientId: otherUser.id,
         content: messageContent,
-        userLevel: currentUser.level
+        userLevel: currentUser.level || 'Bronce'
       });
 
       if (!result.success) {
         setError(result.error || 'Error al enviar el mensaje');
         setMessageInput(messageContent);
       }
-    } catch (err) {
+    } catch (error) {
+      console.error('Error sending message:', error);
       setError('Error al enviar el mensaje. Por favor, intenta de nuevo.');
       setMessageInput(messageContent);
     } finally {
@@ -89,8 +90,19 @@ export default function ChatWithLimits({ currentUser, otherUser, onBack }: ChatW
     }
 
     return (
-      <div className="text-sm text-[#666666]">
-        Te quedan <span className="font-bold text-[#C8102E]">{messagesRemaining}</span> mensaje{messagesRemaining !== 1 ? 's' : ''} hoy
+      <div className="space-y-1">
+        <div className="text-sm text-[#666666]">
+          Te quedan <span className="font-bold text-[#C8102E]">{messagesRemaining}</span> mensaje{messagesRemaining !== 1 ? 's' : ''} hoy
+        </div>
+        {bonusMessages > 0 && (
+          <div className="text-xs text-[#D4AF37]">
+            ✨ Incluye <span className="font-bold">{bonusMessages}</span> mensaje{bonusMessages !== 1 ? 's' : ''} bonus
+          </div>
+        )}
+        <div className="text-xs text-[#999999]">
+          Enviados: <span className="font-medium">{messagesSent}</span> / 
+          <span className="font-medium"> {totalAvailable === Infinity ? '∞' : totalAvailable}</span> disponibles
+        </div>
       </div>
     );
   };
@@ -124,7 +136,7 @@ export default function ChatWithLimits({ currentUser, otherUser, onBack }: ChatW
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold">
-                {otherUser.name.charAt(0).toUpperCase()}
+                {(otherUser.name || 'U').charAt(0).toUpperCase()}
               </div>
             )}
           </div>
@@ -148,6 +160,7 @@ export default function ChatWithLimits({ currentUser, otherUser, onBack }: ChatW
           ) : (
             messages.map((message) => {
               const isOwn = message.sender_id === currentUser.id;
+              const isBeerInvite = message.content.includes('🍺') && message.content.includes('invitado a una cerveza');
               return (
                 <div
                   key={message.id}
@@ -155,7 +168,9 @@ export default function ChatWithLimits({ currentUser, otherUser, onBack }: ChatW
                 >
                   <div
                     className={`max-w-xs md:max-w-md px-4 py-3 rounded-2xl shadow-sm ${
-                      isOwn
+                      isBeerInvite
+                        ? 'bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-[#333333] border-2 border-[#FFA500] rounded-xl'
+                        : isOwn
                         ? 'bg-gradient-to-br from-[#C8102E] to-[#D4AF37] text-white rounded-tr-none'
                         : 'bg-white text-[#333333] rounded-tl-none'
                     }`}
@@ -163,7 +178,11 @@ export default function ChatWithLimits({ currentUser, otherUser, onBack }: ChatW
                     <p className="break-words">{message.content}</p>
                     <p
                       className={`text-xs mt-1 ${
-                        isOwn ? 'text-white/70' : 'text-[#999999]'
+                        isBeerInvite 
+                          ? 'text-[#333333]/70'
+                          : isOwn 
+                          ? 'text-white/70' 
+                          : 'text-[#999999]'
                       }`}
                     >
                       {formatTime(message.created_at)}

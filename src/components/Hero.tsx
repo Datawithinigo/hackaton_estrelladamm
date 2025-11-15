@@ -1,6 +1,10 @@
 import { ArrowRight, Star } from 'lucide-react';
 
-export default function Hero() {
+interface HeroProps {
+  nearbyUsersCount?: number;
+}
+
+export default function Hero({ nearbyUsersCount = 0 }: HeroProps) {
   return (
     <section className="pt-32 pb-20 bg-gradient-to-br from-white via-[#FFF5F5] to-white">
       <div className="container mx-auto px-4">

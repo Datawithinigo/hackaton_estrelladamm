@@ -16,10 +16,12 @@ import FilterStatus from './components/FilterStatus';
 import { User, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserByAuthId, signInWithGoogle, authenticateWithEmail, signOut, getCurrentAuthUser, supabase } from './lib/supabase';
 import { uploadProfilePhoto, deleteProfilePhoto } from './lib/imageUpload';
 import { FilterProvider } from './contexts/FilterContext';
+import { useNearbyUsers } from './hooks/useNearbyUsers';
 
 type Page = 'home' | 'stars' | 'map' | 'faq' | 'messages' | 'auth' | 'onboarding';
 
-function App() {
+// Componente interno que usa el hook useNearbyUsers
+function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState<(User & { id: string }) | null>(null);
   const [pendingAuthEmail, setPendingAuthEmail] = useState<string>('');
@@ -29,6 +31,9 @@ function App() {
   const [allMessages, setAllMessages] = useState<Message[]>([]);
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Hook para contar usuarios cercanos basados en filtros
+  const nearbyUsersCount = useNearbyUsers(allUsers, userData?.id);
 
   useEffect(() => {
     console.log('🎯 App starting - skipping auth check for now');
@@ -356,22 +361,54 @@ function App() {
 
       console.log('🍺 Sending beer to:', recipient.name);
 
-      // Send the beer
-      const { data: beerData, error: beerError } = await supabase
-        .from('beers_sent')
-        .insert({
-          sender_id: userData.id,
-          recipient_id: recipientId
-        })
-        .select()
+      // Find or create conversation with the recipient
+      let conversation: { id: string } | null;
+      const { data: convData, error: convError } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`and(user1_id.eq.${userData.id},user2_id.eq.${recipientId}),and(user1_id.eq.${recipientId},user2_id.eq.${userData.id})`)
         .single();
 
-      if (beerError) {
-        console.error('❌ Beer insertion failed:', beerError);
-        throw new Error('Error al enviar la cerveza: ' + beerError.message);
+      if (convError && convError.code === 'PGRST116') {
+        // Conversation doesn't exist, create it
+        const { data: newConversation, error: createError } = await supabase
+          .from('conversations')
+          .insert({
+            user1_id: userData.id,
+            user2_id: recipientId
+          })
+          .select('id')
+          .single();
+
+        if (createError) {
+          throw new Error('Error al crear conversación: ' + createError.message);
+        }
+        conversation = newConversation;
+      } else if (convError) {
+        throw new Error('Error al buscar conversación: ' + convError.message);
+      } else {
+        conversation = convData;
       }
 
-      console.log('✅ Beer sent successfully:', beerData.id);
+      if (!conversation) {
+        throw new Error('Error: No se pudo establecer la conversación');
+      }
+
+      // Send beer message with special styling
+      const { error: messageError } = await supabase
+        .from('messages')
+        .insert({
+          sender_id: userData.id,
+          recipient_id: recipientId,
+          conversation_id: conversation.id,
+          content: `🍺 ¡${userData.name} te ha invitado a una cerveza! 🍺`
+        });
+
+      if (messageError) {
+        throw new Error('Error al enviar mensaje de cerveza: ' + messageError.message);
+      }
+
+      console.log('✅ Beer message sent successfully');
 
       // Add bonus messages for sending a beer (with error handling)
       try {
@@ -468,7 +505,7 @@ function App() {
                 onNavigate={setCurrentPage}
               />
               <div className="pt-20">
-                <Hero />
+                <Hero nearbyUsersCount={nearbyUsersCount} />
                 <HowItWorks />
                 <section id="registro" className="py-20 bg-gradient-to-br from-[#C8102E] to-[#8B0A1F]">
                   <div className="container mx-auto px-4 text-center">
@@ -527,6 +564,7 @@ function App() {
                 <>
                   <ProfileAndStars 
                     userData={userData} 
+                    nearbyUsersCount={nearbyUsersCount}
                     onAddStar={handleAddStar}
                     onPhotoUpload={handlePhotoUpload}
                     onBioUpdate={handleBioUpdate}
@@ -612,6 +650,7 @@ function App() {
               {userData && (
                 <ProfileAndStars 
                   userData={userData} 
+                  nearbyUsersCount={nearbyUsersCount}
                   onAddStar={handleAddStar}
                   onPhotoUpload={handlePhotoUpload}
                   onBioUpdate={handleBioUpdate}
@@ -636,7 +675,7 @@ function App() {
   }
 
   return (
-    <FilterProvider>
+    <>
       {renderPage()}
       {selectedUser && userData && (
         <ChatWithLimits
@@ -645,6 +684,15 @@ function App() {
           onBack={() => setSelectedUser(null)}
         />
       )}
+    </>
+  );
+}
+
+// Función App principal con FilterProvider
+function App() {
+  return (
+    <FilterProvider>
+      <AppContent />
     </FilterProvider>
   );
 }

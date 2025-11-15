@@ -47,31 +47,58 @@ export const sendMessageWithLimits = async ({
 
     // Check current message count with better error handling
     let messagesSent = 0;
+    let bonusMessages = 0;
+    let totalAvailable = dailyLimit;
+    
     try {
-      // Try SQL function first
-      const { data: currentCount, error: countError } = await supabase.rpc('get_daily_message_count', {
+      // Try new SQL function first for message status
+      const { data: statusData, error: statusError } = await supabase.rpc('get_message_status', {
         p_user_id: senderId
       });
 
-      if (countError) {
-        console.log('⚠️ SQL function not available, using JS alternative:', countError.message);
-        // Use JS alternative
-        messagesSent = await getDailyMessageCountJS(senderId);
+      if (statusError) {
+        console.log('⚠️ New SQL function not available, trying old function:', statusError.message);
+        
+        // Try old SQL function
+        const { data: currentCount, error: countError } = await supabase.rpc('get_daily_message_count', {
+          p_user_id: senderId
+        });
+
+        if (countError) {
+          console.log('⚠️ Old SQL function not available, using JS alternative:', countError.message);
+          messagesSent = await getDailyMessageCountJS(senderId);
+          bonusMessages = 0; // No bonus in old system
+          totalAvailable = dailyLimit;
+        } else {
+          messagesSent = currentCount || 0;
+          bonusMessages = 0; // No bonus in old system
+          totalAvailable = dailyLimit;
+        }
       } else {
-        messagesSent = currentCount || 0;
+        messagesSent = statusData.messages_sent || 0;
+        bonusMessages = statusData.bonus_messages || 0;
+        totalAvailable = statusData.total_available || dailyLimit;
       }
     } catch (countErr) {
       console.warn('⚠️ Using JS fallback for message count:', countErr);
       messagesSent = await getDailyMessageCountJS(senderId);
+      bonusMessages = 0;
+      totalAvailable = dailyLimit;
     }
 
     console.log('📊 Current messages sent today:', messagesSent);
+    console.log('📊 Bonus messages available:', bonusMessages);
+    console.log('📊 Total messages available:', totalAvailable);
 
-    if (dailyLimit !== Infinity && messagesSent >= dailyLimit) {
+    if (totalAvailable !== Infinity && messagesSent >= totalAvailable) {
+      const baseLimit = dailyLimit === Infinity ? 'ilimitados' : dailyLimit.toString();
+      const bonusText = bonusMessages > 0 ? ` (${bonusMessages} bonus)` : '';
+      
       return {
         success: false,
-        error: `Has alcanzado tu límite de ${dailyLimit} mensaje${dailyLimit > 1 ? 's' : ''} diarios. ${
-          userLevel === 'Bronce' ? '¡Consigue más estrellas para enviar más mensajes!' : ''
+        error: `Has alcanzado tu límite de ${baseLimit} mensaje${dailyLimit > 1 ? 's' : ''} diarios${bonusText}. ${
+          userLevel === 'Bronce' ? '¡Consigue más estrellas para enviar más mensajes!' : 
+          userLevel === 'Plata' ? '¡Consigue códigos promocionales para mensajes adicionales!' : ''
         }`
       };
     }
@@ -140,18 +167,18 @@ export const sendMessageWithLimits = async ({
 
     // Increment message count (don't fail the whole operation if this fails)
     try {
-      // Try SQL function first
-      const { error: incrementError } = await supabase.rpc('increment_daily_messages', {
+      // Try new SQL function first
+      const { data: incrementResult, error: incrementError } = await supabase.rpc('increment_daily_messages', {
         p_user_id: senderId
       });
 
       if (incrementError) {
-        console.log('⚠️ SQL function not available, using JS alternative:', incrementError.message);
+        console.log('⚠️ New SQL function not available, using JS alternative:', incrementError.message);
         // Use JS alternative
         await incrementDailyMessagesJS(senderId);
         console.log('📊 Message count incremented successfully (JS)');
       } else {
-        console.log('📊 Message count incremented successfully');
+        console.log('📊 Message count incremented successfully:', incrementResult);
       }
     } catch (incErr) {
       console.log('⚠️ Using JS fallback for incrementing message count:', incErr);

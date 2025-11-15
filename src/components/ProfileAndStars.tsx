@@ -13,12 +13,13 @@ interface ProfileAndStarsProps {
     age?: number;
     gender?: string;
   };
+  nearbyUsersCount?: number;
   onAddStar: () => void;
   onPhotoUpload: (file: File) => void;
   onBioUpdate?: (bio: string) => void;
 }
 
-export default function ProfileAndStars({ userData, onAddStar, onPhotoUpload, onBioUpdate }: ProfileAndStarsProps) {
+export default function ProfileAndStars({ userData, nearbyUsersCount = 0, onAddStar, onPhotoUpload, onBioUpdate }: ProfileAndStarsProps) {
   // States del Profile
   const [isEditing, setIsEditing] = useState(false);
   const [bio, setBio] = useState(userData.bio || '');
@@ -348,7 +349,7 @@ export default function ProfileAndStars({ userData, onAddStar, onPhotoUpload, on
                   <p className="text-sm text-[#666666]">Mensajes/día</p>
                 </div>
                 <div className="bg-[#F5F5F5] rounded-xl p-4">
-                  <p className="text-3xl font-bold text-[#C8102E]">12</p>
+                  <p className="text-3xl font-bold text-[#C8102E]">{nearbyUsersCount}</p>
                   <p className="text-sm text-[#666666]">Cerca de ti</p>
                 </div>
                 <div className="bg-[#F5F5F5] rounded-xl p-4">

@@ -104,6 +104,7 @@ export default function Chat({ currentUser, otherUser, messages, onSendMessage, 
           ) : (
             displayMessages.map((message) => {
               const isOwn = message.sender_id === currentUser.id;
+              const isBeerInvite = message.content.includes('🍺') && message.content.includes('invitado a una cerveza');
               return (
                 <div
                   key={message.id}
@@ -111,7 +112,9 @@ export default function Chat({ currentUser, otherUser, messages, onSendMessage, 
                 >
                   <div
                     className={`max-w-xs md:max-w-md px-4 py-3 rounded-2xl shadow-sm ${
-                      isOwn
+                      isBeerInvite
+                        ? 'bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-[#333333] border-2 border-[#FFA500] rounded-xl'
+                        : isOwn
                         ? 'bg-gradient-to-br from-[#C8102E] to-[#D4AF37] text-white rounded-tr-none'
                         : 'bg-white text-[#333333] rounded-tl-none'
                     }`}
@@ -119,7 +122,11 @@ export default function Chat({ currentUser, otherUser, messages, onSendMessage, 
                     <p className="break-words">{message.content}</p>
                     <p
                       className={`text-xs mt-1 ${
-                        isOwn ? 'text-white/70' : 'text-[#999999]'
+                        isBeerInvite 
+                          ? 'text-[#333333]/70'
+                          : isOwn 
+                          ? 'text-white/70' 
+                          : 'text-[#999999]'
                       }`}
                     >
                       {formatTime(message.created_at)}

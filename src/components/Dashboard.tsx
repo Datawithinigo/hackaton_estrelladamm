@@ -6,10 +6,11 @@ interface DashboardProps {
     stars?: number;
     level?: string;
   };
+  nearbyUsersCount?: number;
   onAddStar: () => void;
 }
 
-export default function Dashboard({ userData, onAddStar }: DashboardProps) {
+export default function Dashboard({ userData, nearbyUsersCount = 0, onAddStar }: DashboardProps) {
   const name = userData.name || 'Usuario';
   const stars = userData.stars || 0;
   const level = userData.level || 'Bronce';
@@ -112,7 +113,7 @@ export default function Dashboard({ userData, onAddStar }: DashboardProps) {
                   <p className="text-sm text-[#666666]">Mensajes/día</p>
                 </div>
                 <div className="bg-[#F5F5F5] rounded-xl p-4">
-                  <p className="text-3xl font-bold text-[#C8102E]">12</p>
+                  <p className="text-3xl font-bold text-[#C8102E]">{nearbyUsersCount}</p>
                   <p className="text-sm text-[#666666]">Cerca de ti</p>
                 </div>
                 <div className="bg-[#F5F5F5] rounded-xl p-4">

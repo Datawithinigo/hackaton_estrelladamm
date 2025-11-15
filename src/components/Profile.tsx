@@ -68,37 +68,11 @@ export default function Profile({ userData, onPhotoUpload, onBioUpdate, isEditab
     setPromoMessage('');
     
     try {
-      // Check if code is valid
-      if (promoCode.trim() !== '123456') {
-        setPromoMessage('Código promocional no válido');
-        setPromoLoading(false);
-        return;
-      }
-      
-      // Check if already used (simplified check)
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Get current daily message count
-      const { data: currentLimit } = await supabase
-        .from('daily_message_limits')
-        .select('messages_sent')
-        .eq('user_id', userData.id)
-        .eq('date', today)
-        .single();
-        
-      const currentSent = currentLimit?.messages_sent || 0;
-      const newSent = Math.max(0, currentSent - 10); // Add 10 bonus messages
-      
-      // Update daily limit to give bonus messages
-      const { error } = await supabase
-        .from('daily_message_limits')
-        .upsert({
-          user_id: userData.id,
-          date: today,
-          messages_sent: newSent
-        }, {
-          onConflict: 'user_id,date'
-        });
+      // Use the database function to redeem promo code
+      const { data: result, error } = await supabase.rpc('redeem_promo_code', {
+        p_user_id: userData.id,
+        p_promo_code: promoCode.trim()
+      });
       
       if (error) {
         console.error('Error applying promo code:', error);
@@ -106,14 +80,18 @@ export default function Profile({ userData, onPhotoUpload, onBioUpdate, isEditab
         return;
       }
       
-      setPromoMessage('¡Código canjeado! Has recibido 10 mensajes adicionales');
-      setShowPromoSuccess(true);
-      setPromoCode('');
-      
-      setTimeout(() => {
-        setShowPromoSuccess(false);
-        setPromoMessage('');
-      }, 5000);
+      if (result.success) {
+        setPromoMessage(result.message);
+        setShowPromoSuccess(true);
+        setPromoCode('');
+        
+        setTimeout(() => {
+          setShowPromoSuccess(false);
+          setPromoMessage('');
+        }, 5000);
+      } else {
+        setPromoMessage(result.message);
+      }
       
     } catch (error) {
       console.error('Unexpected error:', error);
