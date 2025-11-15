@@ -459,6 +459,38 @@ function AppContent() {
     }
   };
 
+  const handleSendBeerFromProfile = async () => {
+    if (!userData || !allUsers.length) {
+      alert('No hay usuarios disponibles para enviar cerveza.');
+      return;
+    }
+
+    // Filtrar usuarios (excluir al usuario actual)
+    const availableUsers = allUsers.filter(user => user.id !== userData.id);
+    
+    if (availableUsers.length === 0) {
+      alert('No hay otros usuarios disponibles para enviar cerveza.');
+      return;
+    }
+
+    // Mostrar los primeros usuarios disponibles
+    const userOptions = availableUsers.slice(0, 5).map((user, index) => 
+      `${index + 1}. ${user.name || 'Usuario sin nombre'}`
+    ).join('\n');
+
+    const selection = prompt(`🍺 ¿A quién quieres invitar una cerveza?\n\n${userOptions}\n\nEscribe el número (1-${Math.min(5, availableUsers.length)}):`);
+    
+    if (selection) {
+      const userIndex = parseInt(selection) - 1;
+      if (userIndex >= 0 && userIndex < Math.min(5, availableUsers.length)) {
+        const selectedUser = availableUsers[userIndex];
+        await handleSendBeer(selectedUser.id);
+      } else {
+        alert('Selección no válida.');
+      }
+    }
+  };
+
   const renderPage = () => {
     if (currentPage === 'onboarding' && pendingAuthEmail) {
       return (
@@ -568,6 +600,7 @@ function AppContent() {
                     onAddStar={handleAddStar}
                     onPhotoUpload={handlePhotoUpload}
                     onBioUpdate={handleBioUpdate}
+                    onSendBeer={handleSendBeerFromProfile}
                   />
                       <section id="usuarios" className="py-20 bg-white">
                     <div className="container mx-auto px-4">
@@ -585,6 +618,7 @@ function AppContent() {
                           users={allUsers}
                           currentUserId={userData.id}
                           onSelectUser={handleSelectUser}
+                          onSendBeer={handleSendBeer}
                         />
                       </div>
                     </div>
@@ -654,6 +688,7 @@ function AppContent() {
                   onAddStar={handleAddStar}
                   onPhotoUpload={handlePhotoUpload}
                   onBioUpdate={handleBioUpdate}
+                  onSendBeer={handleSendBeerFromProfile}
                 />
               )}
             </div>

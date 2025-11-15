@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Star, QrCode, TrendingUp, Camera, Edit2, Save, X, Gift, Plus } from 'lucide-react';
+import { Star, QrCode, TrendingUp, Camera, Edit2, Save, X, Gift, Plus, Beer } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface ProfileAndStarsProps {
@@ -17,9 +17,10 @@ interface ProfileAndStarsProps {
   onAddStar: () => void;
   onPhotoUpload: (file: File) => void;
   onBioUpdate?: (bio: string) => void;
+  onSendBeer?: () => void;
 }
 
-export default function ProfileAndStars({ userData, nearbyUsersCount = 0, onAddStar, onPhotoUpload, onBioUpdate }: ProfileAndStarsProps) {
+export default function ProfileAndStars({ userData, nearbyUsersCount = 0, onAddStar, onPhotoUpload, onBioUpdate, onSendBeer }: ProfileAndStarsProps) {
   // States del Profile
   const [isEditing, setIsEditing] = useState(false);
   const [bio, setBio] = useState(userData.bio || '');
@@ -279,7 +280,7 @@ export default function ProfileAndStars({ userData, nearbyUsersCount = 0, onAddS
                 )}
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4 mb-6">
+              <div className="grid md:grid-cols-3 gap-4 mb-6">
                 <button
                   onClick={onAddStar}
                   className="flex items-center justify-center gap-3 bg-[#C8102E] text-white px-6 py-4 rounded-xl font-bold hover:bg-[#A00D24] transition-all hover:scale-105 shadow-lg"
@@ -287,6 +288,16 @@ export default function ProfileAndStars({ userData, nearbyUsersCount = 0, onAddS
                   <QrCode className="w-6 h-6" />
                   Escanear otra botella
                 </button>
+
+                {onSendBeer && (
+                  <button
+                    onClick={onSendBeer}
+                    className="flex items-center justify-center gap-3 bg-[#FFA500] text-white px-6 py-4 rounded-xl font-bold hover:bg-[#FF8C00] transition-all hover:scale-105 shadow-lg"
+                  >
+                    <Beer className="w-6 h-6" />
+                    Invitar cerveza
+                  </button>
+                )}
 
                 <button className="flex items-center justify-center gap-3 border-2 border-[#D4AF37] text-[#D4AF37] px-6 py-4 rounded-xl font-bold hover:bg-[#D4AF37] hover:text-white transition-all">
                   <TrendingUp className="w-6 h-6" />
