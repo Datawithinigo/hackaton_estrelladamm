@@ -191,3 +191,46 @@ export const signInWithEmail = async (email: string, password: string) => {
   if (error) throw error;
   return data;
 };
+
+export const authenticateWithEmail = async (email: string, password: string) => {
+  try {
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (!signInError && signInData.user) {
+      return { type: 'signin' as const, user: signInData.user };
+    }
+
+    if (signInError?.message.includes('Invalid login credentials')) {
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password
+      });
+
+      if (signUpError) throw signUpError;
+      if (!signUpData.user) throw new Error('No user returned from signup');
+
+      const { data: userRecord, error: userError } = await supabase
+        .from('users')
+        .insert([{
+          auth_user_id: signUpData.user.id,
+          email: signUpData.user.email,
+          stars: 0,
+          level: 'Bronce',
+          visible_on_map: false
+        }])
+        .select()
+        .single();
+
+      if (userError) throw userError;
+
+      return { type: 'signup' as const, user: signUpData.user, needsOnboarding: true };
+    }
+
+    throw signInError;
+  } catch (error) {
+    throw error;
+  }
+};

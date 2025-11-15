@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Star, Menu, X, LogOut } from 'lucide-react';
 
-type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages' | 'login';
+type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages' | 'auth';
 
 interface HeaderProps {
   isLoggedIn: boolean;
@@ -26,7 +26,7 @@ export default function Header({ isLoggedIn, currentPage, onNavigate, onLogout, 
 
   const landingLinks = [
     { page: 'home' as Page, label: 'Cómo funciona', scroll: true },
-    { page: 'login' as Page, label: 'Iniciar Sesión', scroll: false },
+    { page: 'auth' as Page, label: 'Iniciar Sesión', scroll: false },
     { page: 'faq' as Page, label: 'FAQ', scroll: false }
   ];
 

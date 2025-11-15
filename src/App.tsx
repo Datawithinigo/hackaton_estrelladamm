@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
-import Landing from './components/Landing';
-import Login from './components/Login';
+import Hero from './components/Hero';
+import HowItWorks from './components/HowItWorks';
+import Auth from './components/Auth';
 import Onboarding from './components/Onboarding';
 import Dashboard from './components/Dashboard';
 import Map from './components/Map';
@@ -12,9 +13,9 @@ import Profile from './components/Profile';
 import UsersList from './components/UsersList';
 import ChatWithLimits from './components/ChatWithLimits';
 import ConversationsWithLimits from './components/ConversationsWithLimits';
-import { User, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserById, getUserByEmail, getUserByAuthId, signInWithGoogle, signUpWithEmail, signInWithEmail, signOut, getCurrentAuthUser, supabase } from './lib/supabase';
+import { User, Message, getAllUsers, getConversation, sendMessage, createUser, updateUser, getUserById, getUserByEmail, getUserByAuthId, signInWithGoogle, authenticateWithEmail, signOut, getCurrentAuthUser, supabase } from './lib/supabase';
 
-type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages' | 'login' | 'onboarding';
+type Page = 'home' | 'profile' | 'stars' | 'map' | 'faq' | 'messages' | 'auth' | 'onboarding';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -174,54 +175,39 @@ function App() {
     }
   };
 
-  const handleRegistration = async (name: string, age: number, gender: string, email: string, password: string, orientation?: string) => {
+  const handleAuth = async (email: string, password: string) => {
     try {
-      const { userRecord } = await signUpWithEmail(email, password, {
-        name,
-        age,
-        gender,
-        orientation
-      });
+      const result = await authenticateWithEmail(email, password);
 
-      if (userRecord && userRecord.id) {
-        setUserData(userRecord as User & { id: string });
-        setIsLoggedIn(true);
-        localStorage.setItem('currentUserId', userRecord.id);
-        setCurrentPage('stars');
+      if (result.type === 'signup' && result.needsOnboarding) {
+        setPendingAuthEmail(email);
+        setCurrentPage('onboarding');
+      } else {
+        const user = await getUserByAuthId(result.user.id);
+        if (user && user.id) {
+          if (!user.name || !user.age || !user.gender) {
+            setPendingAuthEmail(email);
+            setCurrentPage('onboarding');
+          } else {
+            setUserData(user as User & { id: string });
+            setIsLoggedIn(true);
+            localStorage.setItem('currentUserId', user.id);
+            setCurrentPage('stars');
+          }
+        }
       }
     } catch (error: any) {
-      console.error('Error creating user:', error);
-      if (error.message?.includes('already registered')) {
-        alert('Este email ya está registrado. Intenta iniciar sesión.');
-      } else {
-        alert('Error al crear el usuario. Por favor, intenta de nuevo.');
-      }
+      console.error('Error during authentication:', error);
+      alert('Error al autenticar. Verifica tus credenciales e intenta de nuevo.');
     }
   };
 
-  const handleLogin = async (email: string) => {
-    try {
-      const user = await getUserByEmail(email);
-      if (user && user.id) {
-        setUserData(user as User & { id: string });
-        setIsLoggedIn(true);
-        localStorage.setItem('currentUserId', user.id);
-        setCurrentPage('stars');
-      } else {
-        alert('Usuario no encontrado. ¿Quieres registrarte?');
-      }
-    } catch (error) {
-      console.error('Error logging in:', error);
-      alert('Error al iniciar sesión. Por favor, intenta de nuevo.');
-    }
-  };
-
-  const handleGoogleLogin = async () => {
+  const handleGoogleAuth = async () => {
     try {
       await signInWithGoogle();
     } catch (error) {
-      console.error('Error with Google login:', error);
-      alert('Error al iniciar sesión con Google. Por favor, intenta de nuevo.');
+      console.error('Error with Google auth:', error);
+      alert('Error al autenticar con Google. Por favor, intenta de nuevo.');
     }
   };
 
@@ -366,19 +352,10 @@ function App() {
 
     if (!isLoggedIn) {
       switch (currentPage) {
-        case 'login':
+        case 'auth':
           return (
             <div className="min-h-screen bg-white">
-              <Header
-                isLoggedIn={false}
-                currentPage={currentPage}
-                onNavigate={setCurrentPage}
-              />
-              <Login
-                onLogin={handleLogin}
-                onGoogleLogin={handleGoogleLogin}
-                onSwitchToRegister={() => setCurrentPage('home')}
-              />
+              <Auth onAuth={handleAuth} onGoogleAuth={handleGoogleAuth} />
             </div>
           );
 
@@ -407,8 +384,23 @@ function App() {
                 onNavigate={setCurrentPage}
               />
               <div className="pt-20">
-                <Landing onRegister={handleRegistration} onGoogleRegister={handleGoogleLogin} />
+                <Hero />
+                <HowItWorks />
+                <section id="registro" className="py-20 bg-gradient-to-br from-[#C8102E] to-[#8B0A1F]">
+                  <div className="container mx-auto px-4 text-center">
+                    <h2 className="text-4xl md:text-5xl font-bold text-white mb-8">
+                      ¿Listo para empezar?
+                    </h2>
+                    <button
+                      onClick={() => setCurrentPage('auth')}
+                      className="bg-white text-[#C8102E] px-12 py-4 rounded-xl font-bold text-xl hover:shadow-2xl hover:scale-105 transition-all"
+                    >
+                      Únete al juego
+                    </button>
+                  </div>
+                </section>
               </div>
+              <Footer />
             </div>
           );
       }
